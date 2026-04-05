@@ -92,6 +92,19 @@ st.markdown("""
         line-height: 1.6;
     }
     
+    /* Role Badge */
+    .role-badge {
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        text-transform: uppercase;
+        font-weight: bold;
+        margin-top: 5px;
+    }
+    .badge-teacher { background-color: #E03E2D; color: white; }
+    .badge-student { background-color: #00acee; color: white; }
+    .badge-admin { background-color: #ffd700; color: black; }
+    
     /* Button styling */
     .stButton>button {
         background-color: #ffd700;
@@ -119,17 +132,6 @@ st.markdown("""
         color: white;
     }
 
-    /* Auth Box styling */
-    .auth-container {
-        max-width: 400px;
-        margin: auto;
-        padding: 40px;
-        background-color: #1c2128;
-        border-radius: 15px;
-        border: 1px solid #30363d;
-        text-align: center;
-    }
-
     /* Hide default Streamlit sidebar radio selector */
     div[data-testid="stSidebarUserContent"] .stRadio {
         display: none;
@@ -139,9 +141,11 @@ st.markdown("""
 
 # --- DATA PERSISTENCE ---
 if 'users' not in st.session_state:
+    # Structure: username: {"password": "...", "role": "..."}
     st.session_state.users = {
-        "admin": "password123",
-        "student": "canvas2024"
+        "admin": {"password": "password123", "role": "Admin"},
+        "teacher_jane": {"password": "teach", "role": "Teacher"},
+        "student_bob": {"password": "learn", "role": "Student"}
     }
 
 if 'logged_in_user' not in st.session_state:
@@ -151,14 +155,14 @@ if 'events' not in st.session_state:
     st.session_state.events = [
         {
             "id": 1,
-            "title": "Python Workshop for Beginners",
+            "title": "Introduction to Python Quiz",
             "date": date(2024, 4, 15),
             "time": "14:00",
-            "location": "IT Lab 4",
-            "category": "Workshop",
-            "organizer": "Coding Club",
-            "description": "Learn the basics of Python programming in this hands-on session. No prior experience required!",
-            "attendees": 12
+            "location": "Online / Canvas",
+            "category": "Quiz",
+            "organizer": "teacher_jane",
+            "description": "A mandatory quiz covering the first three weeks of Python basics.",
+            "type": "Task"
         },
         {
             "id": 2,
@@ -167,13 +171,12 @@ if 'events' not in st.session_state:
             "time": "18:00",
             "location": "Main Courtyard",
             "category": "Social",
-            "organizer": "Music Society",
-            "description": "Enjoy a night of live performances from local student bands and solo artists.",
-            "attendees": 45
+            "organizer": "admin",
+            "description": "Enjoy a night of live performances.",
+            "type": "Event"
         }
     ]
 
-# Ensure bookmarks is always initialized as a dictionary
 if 'bookmarks' not in st.session_state:
     st.session_state.bookmarks = {}
 
@@ -182,7 +185,7 @@ if 'active_tab' not in st.session_state:
 
 # --- AUTHENTICATION UI ---
 def show_login_page():
-    st.markdown('<h1 style="text-align: center; color: #ffd700;">🎓 Campus Hub Login</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 style="text-align: center; color: #ffd700;">🎓 Campus LMS Login</h1>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -195,9 +198,8 @@ def show_login_page():
                 submit = st.form_submit_button("Sign In", use_container_width=True)
                 
                 if submit:
-                    if username in st.session_state.users and st.session_state.users[username] == password:
+                    if username in st.session_state.users and st.session_state.users[username]["password"] == password:
                         st.session_state.logged_in_user = username
-                        # Initialize user bookmarks upon login if they don't exist
                         if username not in st.session_state.bookmarks:
                             st.session_state.bookmarks[username] = []
                         st.rerun()
@@ -208,7 +210,7 @@ def show_login_page():
             with st.form("register_form"):
                 new_user = st.text_input("Choose Username")
                 new_pass = st.text_input("Choose Password", type="password")
-                confirm_pass = st.text_input("Confirm Password", type="password")
+                role = st.selectbox("I am a...", ["Student", "Teacher"])
                 reg_submit = st.form_submit_button("Create Account", use_container_width=True)
                 
                 if reg_submit:
@@ -216,35 +218,35 @@ def show_login_page():
                         st.warning("Please fill in all fields.")
                     elif new_user in st.session_state.users:
                         st.error("Username already exists.")
-                    elif new_pass != confirm_pass:
-                        st.error("Passwords do not match.")
                     else:
-                        st.session_state.users[new_user] = new_pass
+                        st.session_state.users[new_user] = {"password": new_pass, "role": role}
                         st.session_state.bookmarks[new_user] = []
-                        st.success("Account created! You can now login.")
+                        st.success(f"Account created as {role}! You can now login.")
 
 # --- MAIN APP LOGIC ---
-def add_event(title, edate, etime, loc, cat, org, desc):
+def add_event(title, edate, etime, loc, cat, org, desc, etype="Task"):
     new_id = max([e['id'] for e in st.session_state.events]) + 1 if st.session_state.events else 1
     st.session_state.events.append({
         "id": new_id, "title": title, "date": edate, "time": etime.strftime("%H:%M"),
-        "location": loc, "category": cat, "organizer": org, "description": desc, "attendees": 0
+        "location": loc, "category": cat, "organizer": org, "description": desc, "type": etype
     })
 
 # Check if user is logged in
 if st.session_state.logged_in_user is None:
     show_login_page()
 else:
-    # --- NAVIGATION SIDEBAR (Canvas Style) ---
     current_user = st.session_state.logged_in_user
+    user_role = st.session_state.users[current_user]["role"]
     
+    # --- NAVIGATION SIDEBAR (Canvas Style) ---
     with st.sidebar:
         # Account Section
+        badge_class = f"badge-{user_role.lower()}"
         st.markdown(f"""
             <div class="nav-item">
                 <div class="nav-icon" style="background: #555; border-radius: 50%; width: 40px; height: 40px; line-height: 40px; margin: 0 auto 5px auto;">👤</div>
-                <div class="nav-text" style="color: #ffffff; font-weight: bold;">Account</div>
-                <div style="font-size: 10px; color: #aaa;">{current_user}</div>
+                <div class="nav-text" style="color: #ffffff; font-weight: bold;">{current_user}</div>
+                <span class="role-badge {badge_class}">{user_role}</span>
             </div>
         """, unsafe_allow_html=True)
 
@@ -254,17 +256,18 @@ else:
 
         st.markdown("---")
 
-        # Match labels to the Canvas image icons
         nav_items = [
             {"id": "📊 Dashboard", "label": "Dashboard", "icon": "⏲️"},
             {"id": "📚 Courses", "label": "Courses", "icon": "📖"},
             {"id": "🗓️ Calendar", "label": "Calendar", "icon": "📅"},
-            {"id": "📥 Inbox", "label": "Inbox", "icon": "📥"},
-            {"id": "❓ Help", "label": "Help", "icon": "❓"}
+            {"id": "📥 Inbox", "label": "Inbox", "icon": "📥"}
         ]
+        
+        # Only Teachers and Admins get the "Assign" tab
+        if user_role in ["Teacher", "Admin"]:
+            nav_items.insert(3, {"id": "📝 Assign", "label": "Assign", "icon": "✍️"})
 
         for item in nav_items:
-            # Note: We display the icon and label stacked to mimic the Canvas look
             if st.button(f"{item['icon']}\n{item['label']}", key=f"nav_{item['id']}", use_container_width=True):
                 st.session_state.active_tab = item['id']
                 st.rerun()
@@ -272,26 +275,28 @@ else:
     # --- MAIN CONTENT ---
     choice = st.session_state.active_tab
     
-    # Safety check for bookmarks
     if current_user not in st.session_state.bookmarks:
         st.session_state.bookmarks[current_user] = []
 
     if choice == "📊 Dashboard":
-        st.markdown(f'<h1 class="main-title">🎓 Event Dashboard</h1>', unsafe_allow_html=True)
+        st.markdown(f'<h1 class="main-title">🎓 Student Dashboard</h1>', unsafe_allow_html=True)
         col1, col2 = st.columns([2, 1])
         with col1:
-            search = st.text_input("🔍 Search events...", "")
+            search = st.text_input("🔍 Search tasks/events...", "")
         with col2:
-            cat_filter = st.selectbox("Category", ["All", "Workshop", "Social", "Sports", "Academic"])
+            cat_filter = st.selectbox("Type", ["All", "Quiz", "Assignment", "Task", "Social"])
 
         for ev in reversed(st.session_state.events):
-            if search.lower() in ev['title'].lower() and (cat_filter == "All" or ev['category'] == cat_filter):
+            matches_search = search.lower() in ev['title'].lower()
+            matches_cat = (cat_filter == "All" or ev['category'] == cat_filter)
+            
+            if matches_search and matches_cat:
                 st.markdown(f"""
                 <div class="event-card">
-                    <h3>{ev['title']}</h3>
+                    <h3>{ev['title']} <span style="font-size: 12px; color: #aaa;">({ev['category']})</span></h3>
                     <div class="event-details">
-                        <b>📅 Date:</b> {ev['date']} | <b>⏰ Time:</b> {ev['time']} | <b>📍 Location:</b> {ev['location']}<br>
-                        <b>👤 Organizer:</b> {ev['organizer']}<br><br>
+                        <b>📅 Due/Date:</b> {ev['date']} | <b>⏰ Time:</b> {ev['time']} | <b>📍 Location:</b> {ev['location']}<br>
+                        <b>👤 Assigned by:</b> {ev['organizer']}<br><br>
                         <i>{ev['description']}</i>
                     </div>
                 </div>
@@ -300,77 +305,58 @@ else:
                 c1, c2 = st.columns([1, 4])
                 with c1:
                     is_saved = ev['id'] in st.session_state.bookmarks[current_user]
-                    btn_label = "✅ Saved" if is_saved else "📥 Join/Save"
-                    if st.button(btn_label, key=f"join_{ev['id']}", disabled=is_saved):
-                        st.session_state.bookmarks[current_user].append(ev['id'])
+                    btn_label = "✅ Joined" if is_saved else "📥 Join Task"
+                    if st.button(btn_label, key=f"join_{ev['id']}"):
+                        if is_saved:
+                            st.session_state.bookmarks[current_user].remove(ev['id'])
+                        else:
+                            st.session_state.bookmarks[current_user].append(ev['id'])
                         st.rerun()
 
-    elif choice == "📚 Courses":
-        st.header("Academic Activities & Courses")
-        st.info("This section displays academic-related events and study groups.")
-        academic_events = [e for e in st.session_state.events if e['category'] == "Academic"]
-        if academic_events:
-            for ev in academic_events:
-                st.write(f"📖 **{ev['title']}** - {ev['date']} at {ev['location']}")
+    elif choice == "📝 Assign":
+        # Only accessible to Teachers and Admins
+        if user_role not in ["Teacher", "Admin"]:
+            st.error("Access Denied. Only Teachers can assign tasks.")
         else:
-            st.write("No academic events currently scheduled.")
+            st.header("Assign New Task / Quiz")
+            with st.form("assignment_form", clear_on_submit=True):
+                title = st.text_input("Title (e.g., Math Quiz 1)*")
+                col1, col2 = st.columns(2)
+                with col1: edate = st.date_input("Due Date", value=date.today())
+                with col2: etime = st.time_input("Due Time")
+                loc = st.text_input("Location / Link", value="Canvas Online")
+                cat = st.selectbox("Category", ["Assignment", "Quiz", "Task", "Discussion"])
+                desc = st.text_area("Instructions / Description")
+                
+                if st.form_submit_button("Post to Students 🚀"):
+                    if title:
+                        add_event(title, edate, etime, loc, cat, current_user, desc, etype="Task")
+                        st.success(f"Task '{title}' has been assigned to all students.")
+                    else:
+                        st.error("Please provide a title.")
 
     elif choice == "🗓️ Calendar":
-        st.header("Schedule Overview")
+        st.header("Academic Calendar")
         if st.session_state.events:
             df = pd.DataFrame(st.session_state.events)
-            df['date'] = pd.to_datetime(df['date'])
-            st.dataframe(
-                df[['date', 'title', 'location', 'category', 'organizer']].sort_values('date'), 
-                use_container_width=True, 
-                hide_index=True
-            )
-        else:
-            st.info("No events scheduled yet.")
+            st.dataframe(df[['date', 'title', 'category', 'organizer']].sort_values('date'), use_container_width=True, hide_index=True)
 
     elif choice == "📥 Inbox":
-        st.header("Your Saved Events (Inbox)")
+        st.header("My Active Tasks")
         user_bookmarks = st.session_state.bookmarks.get(current_user, [])
         bookmarked = [e for e in st.session_state.events if e['id'] in user_bookmarks]
         
         if not bookmarked:
-            st.info("Your inbox is empty. Save events from the Dashboard to see them here.")
+            st.info("You have no active tasks joined. Browse the Dashboard to join assignments.")
         else:
             for ev in bookmarked:
-                with st.expander(f"📌 {ev['title']} - {ev['date']}"):
-                    st.write(f"**Location:** {ev['location']}")
-                    st.write(f"**Time:** {ev['time']}")
-                    st.write(f"**Description:** {ev['description']}")
-                    if st.button(f"Remove from Inbox", key=f"rem_{ev['id']}"):
+                with st.expander(f"📌 {ev['title']} - Due: {ev['date']}"):
+                    st.write(f"**Instructions:** {ev['description']}")
+                    if st.button("Unregister / Leave", key=f"rem_{ev['id']}"):
                         st.session_state.bookmarks[current_user].remove(ev['id'])
                         st.rerun()
-        
-        st.divider()
-        st.subheader("Post a New Announcement")
-        with st.form("event_form", clear_on_submit=True):
-            title = st.text_input("Event Title*")
-            col1, col2 = st.columns(2)
-            with col1: edate = st.date_input("Date", value=date.today())
-            with col2: etime = st.time_input("Time")
-            loc = st.text_input("Location")
-            cat = st.selectbox("Category", ["Workshop", "Social", "Sports", "Academic"])
-            org = st.text_input("Organizer*", value=current_user)
-            desc = st.text_area("Description")
-            
-            if st.form_submit_button("Post Announcement 🚀"):
-                if title and org:
-                    add_event(title, edate, etime, loc, cat, org, desc)
-                    st.success(f"Successfully posted '{title}'!")
-                else:
-                    st.error("Please provide both an Event Title and an Organizer.")
 
-    elif choice == "❓ Help":
-        st.header("Help & Support")
-        st.markdown(f"**User:** {current_user}")
-        st.markdown("""
-        ### Navigation Guide
-        - **Dashboard**: Browse and search all campus events. Click 'Join/Save' to track them.
-        - **Courses**: Focus on academic workshops and study sessions.
-        - **Calendar**: View a tabular list of all upcoming dates.
-        - **Inbox**: Manage your personal list of saved events and post new announcements.
-        """)
+    elif choice == "📚 Courses":
+        st.header("My Courses")
+        st.write("Current Course Enrollment: Computer Science 101, Business Ethics, Advanced Calculus.")
+        st.info("Teachers can view student progress here (Feature coming soon).")
