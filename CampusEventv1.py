@@ -89,6 +89,12 @@ st.markdown("""
         background-color: #ffc107;
         color: #000000;
     }
+
+    /* Red button style for quitting */
+    .quit-btn > div > button {
+        background-color: #ff4b4b !important;
+        color: white !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -181,13 +187,18 @@ if choice == "📡 Event Feed":
                 c1, c2 = st.columns([1, 5])
                 with c1:
                     is_bookmarked = ev['id'] in st.session_state.bookmarks
-                    btn_label = "Saved ✅" if is_bookmarked else "Join / Save"
-                    if st.button(btn_label, key=f"btn_{ev['id']}"):
-                        if not is_bookmarked:
-                            st.session_state.bookmarks.append(ev['id'])
+                    if is_bookmarked:
+                        st.markdown('<div class="quit-btn">', unsafe_allow_html=True)
+                        if st.button("Quit Event", key=f"quit_feed_{ev['id']}"):
+                            st.session_state.bookmarks.remove(ev['id'])
+                            st.toast(f"You have left {ev['title']}")
                             st.rerun()
-                        else:
-                            st.toast("Already in your bookmarks!")
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    else:
+                        if st.button("Join / Save", key=f"join_feed_{ev['id']}"):
+                            st.session_state.bookmarks.append(ev['id'])
+                            st.toast(f"Joined {ev['title']}!")
+                            st.rerun()
 
 # --- PAGE: CALENDAR VIEW ---
 elif choice == "🗓️ Calendar View":
@@ -248,11 +259,20 @@ elif choice == "🔖 My Bookmarks":
                 st.write(f"**Location:** {ev['location']}")
                 st.write(f"**Category:** {ev['category']}")
                 st.write(f"**Description:** {ev['description']}")
+                
+                # Individual Quit Button within expander
+                st.markdown('<div class="quit-btn">', unsafe_allow_html=True)
+                if st.button(f"Quit {ev['title']}", key=f"quit_bookmark_{ev['id']}"):
+                    st.session_state.bookmarks.remove(ev['id'])
+                    st.toast(f"Removed {ev['title']} from your bookmarks")
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
         
+        st.markdown("---")
         if st.button("Clear All Bookmarks"):
             st.session_state.bookmarks = []
             st.rerun()
 
 # --- FOOTER ---
 st.sidebar.markdown("---")
-st.sidebar.caption("Campus Hub v1.2 | Dark Mode Visual Fix")
+st.sidebar.caption("Campus Hub v1.3 | Event Management Update")
