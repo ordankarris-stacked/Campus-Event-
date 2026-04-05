@@ -91,6 +91,15 @@ st.markdown("""
         font-size: 0.95rem;
         line-height: 1.6;
     }
+
+    /* Course Mini Card for Dashboard */
+    .course-mini-card {
+        background-color: #1c2128;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
     
     /* Role Badge */
     .role-badge {
@@ -391,54 +400,91 @@ else:
     elif choice == "📊 Dashboard":
         header_text = f"🎓 {user_section} Dashboard" if user_role != "Admin" else "🎓 Master Admin Dashboard"
         st.markdown(f'<h1 class="main-title">{header_text}</h1>', unsafe_allow_html=True)
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            search = st.text_input("🔍 Search tasks/events...", "")
-        with col2:
-            cat_filter = st.selectbox("Type", ["All", "Quiz", "Assignment", "Task", "Social"])
+        
+        col_main, col_side = st.columns([3, 1])
+        
+        with col_main:
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                search = st.text_input("🔍 Search tasks/events...", "")
+            with col2:
+                cat_filter = st.selectbox("Type", ["All", "Quiz", "Assignment", "Task", "Social"])
 
-        # BARRIER LOGIC: Filter events based on target_section
-        visible_events = []
-        for ev in st.session_state.events:
-            target = ev.get('target_section', 'All')
-            # Students only see 'All' or their specific section
-            if user_role == "Student":
-                if target == "All" or target == user_section:
+            # BARRIER LOGIC: Filter events based on target_section
+            visible_events = []
+            for ev in st.session_state.events:
+                target = ev.get('target_section', 'All')
+                # Students only see 'All' or their specific section
+                if user_role == "Student":
+                    if target == "All" or target == user_section:
+                        visible_events.append(ev)
+                # Teachers only see 'All' or their own specific section (if they aren't 'Faculty')
+                elif user_role == "Teacher":
+                    if user_section == "Faculty" or target == "All" or target == user_section:
+                        visible_events.append(ev)
+                else:
+                    # Admins see everything
                     visible_events.append(ev)
-            # Teachers only see 'All' or their own specific section (if they aren't 'Faculty')
-            elif user_role == "Teacher":
-                if user_section == "Faculty" or target == "All" or target == user_section:
-                    visible_events.append(ev)
-            else:
-                # Admins see everything
-                visible_events.append(ev)
 
-        for ev in reversed(visible_events):
-            matches_search = search.lower() in ev['title'].lower()
-            matches_cat = (cat_filter == "All" or ev['category'] == cat_filter)
-            
-            if matches_search and matches_cat:
-                st.markdown(f"""
-                <div class="event-card">
-                    <h3>{ev['title']} <span style="font-size: 12px; color: #aaa;">({ev['category']})</span></h3>
-                    <div class="event-details">
-                        <b>📅 Due/Date:</b> {ev['date']} | <b>⏰ Time:</b> {ev['time']} | <b>📍 Location:</b> {ev['location']}<br>
-                        <b>👤 Assigned by:</b> {ev['organizer']}<br><br>
-                        <i>{ev['description']}</i>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+            for ev in reversed(visible_events):
+                matches_search = search.lower() in ev['title'].lower()
+                matches_cat = (cat_filter == "All" or ev['category'] == cat_filter)
                 
-                c1, c2 = st.columns([1, 4])
-                with c1:
-                    is_saved = ev['id'] in st.session_state.bookmarks.get(current_user, [])
-                    btn_label = "✅ Joined" if is_saved else "📥 Join Task"
-                    if st.button(btn_label, key=f"join_{ev['id']}"):
-                        if is_saved:
-                            st.session_state.bookmarks[current_user].remove(ev['id'])
-                        else:
-                            st.session_state.bookmarks[current_user].append(ev['id'])
-                        st.rerun()
+                if matches_search and matches_cat:
+                    st.markdown(f"""
+                    <div class="event-card">
+                        <h3>{ev['title']} <span style="font-size: 12px; color: #aaa;">({ev['category']})</span></h3>
+                        <div class="event-details">
+                            <b>📅 Due/Date:</b> {ev['date']} | <b>⏰ Time:</b> {ev['time']} | <b>📍 Location:</b> {ev['location']}<br>
+                            <b>👤 Assigned by:</b> {ev['organizer']}<br><br>
+                            <i>{ev['description']}</i>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    c1, c2 = st.columns([1, 4])
+                    with c1:
+                        is_saved = ev['id'] in st.session_state.bookmarks.get(current_user, [])
+                        btn_label = "✅ Joined" if is_saved else "📥 Join Task"
+                        if st.button(btn_label, key=f"join_{ev['id']}"):
+                            if is_saved:
+                                st.session_state.bookmarks[current_user].remove(ev['id'])
+                            else:
+                                st.session_state.bookmarks[current_user].append(ev['id'])
+                            st.rerun()
+        
+        with col_side:
+            st.markdown("### 📚 My Courses")
+            # Logic to show the relevant department course list in the dashboard sidebar
+            if user_role == "Admin" or user_section == "Faculty":
+                # Admins/Faculty see a summary or list of all sections
+                for section, info in st.session_state.course_catalog.items():
+                    st.markdown(f"""
+                        <div class="course-mini-card">
+                            <b style="color:#ffd700;">{section} Dept</b><br>
+                            <span style="font-size:0.85rem; color:#ccc;">{info[:40]}...</span>
+                        </div>
+                    """, unsafe_allow_html=True)
+            else:
+                # Specific section users see their own track
+                current_info = st.session_state.course_catalog.get(user_section, "Check advisor for course list.")
+                st.markdown(f"""
+                    <div class="course-mini-card">
+                        <b style="color:#ffd700;">{user_section} Track</b><br>
+                        <span style="font-size:0.9rem; color:#ccc;">{current_info}</span>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("---")
+            st.markdown("### 📋 To Do")
+            user_bookmarks = st.session_state.bookmarks.get(current_user, [])
+            if not user_bookmarks:
+                st.caption("Nothing planned yet. Join a task to see it here!")
+            else:
+                for ev_id in user_bookmarks:
+                    ev_item = next((e for e in st.session_state.events if e['id'] == ev_id), None)
+                    if ev_item:
+                        st.markdown(f"- {ev_item['title']} ({ev_item['date']})")
 
     elif choice == "📝 Assign":
         if user_role not in ["Teacher", "Admin"]:
