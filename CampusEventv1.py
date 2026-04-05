@@ -150,6 +150,7 @@ if 'users' not in st.session_state:
     st.session_state.users = {
         "admin": {"password": "password123", "role": "Admin"},
         "teacher_jane": {"password": "teach", "role": "Teacher"},
+        "student": {"password": "canvas2024", "role": "Student"},
         "student_bob": {"password": "learn", "role": "Student"}
     }
 
@@ -203,13 +204,18 @@ def show_login_page():
                 submit = st.form_submit_button("Sign In", use_container_width=True)
                 
                 if submit:
-                    if username in st.session_state.users and st.session_state.users[username]["password"] == password:
-                        st.session_state.logged_in_user = username
-                        if username not in st.session_state.bookmarks:
-                            st.session_state.bookmarks[username] = []
-                        st.rerun()
+                    if username in st.session_state.users:
+                        stored_creds = st.session_state.users[username]
+                        if stored_creds["password"] == password:
+                            st.session_state.logged_in_user = username
+                            # Initialize user bookmarks upon login if they don't exist
+                            if username not in st.session_state.bookmarks:
+                                st.session_state.bookmarks[username] = []
+                            st.rerun()
+                        else:
+                            st.error("Invalid password.")
                     else:
-                        st.error("Invalid username or password.")
+                        st.error("User not found.")
         
         with tab2:
             with st.form("register_form"):
