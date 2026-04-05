@@ -148,23 +148,31 @@ st.markdown("""
 
 # --- INITIALIZE STATE ---
 if 'users' not in st.session_state:
+    # Restoring and adding the specific user requested accounts
     st.session_state.users = {
         "admin": {"password": "password123", "role": "Admin", "section": "Faculty"},
-        "student": {"password": "pass", "role": "Student", "section": "Computer"}
+        "student": {"password": "pass", "role": "Student", "section": "Computer"},
+        "teacherabc": {"password": "pass", "role": "Teacher", "section": "Faculty"},
+        "studentabc": {"password": "pass", "role": "Student", "section": "Business"},
+        # Added Teacher A, B, C
+        "teacherA": {"password": "pass", "role": "Teacher", "section": "Business"},
+        "teacherB": {"password": "pass", "role": "Teacher", "section": "Computer"},
+        "teacherC": {"password": "pass", "role": "Teacher", "section": "Law"},
+        # Added Student A, B, C
+        "studentA": {"password": "pass", "role": "Student", "section": "Business"},
+        "studentB": {"password": "pass", "role": "Student", "section": "Computer"},
+        "studentC": {"password": "pass", "role": "Student", "section": "Law"},
     }
 
-# UPDATED COURSE DATA - Using standardized brand colors and original website sections only
+# UPDATED COURSE DATA
 if 'courses' not in st.session_state:
-    # Standard color for all cards to keep "our own style" without distinct varied colors
-    brand_color = "#1c2128" # Matching the app's dark neutral or we can use the Red brand color
-    
     st.session_state.courses = [
         {
             "id": "BUS101", 
             "name": "Economics & Marketing", 
             "code": "BUS-101 Business Fundamentals", 
             "term": "2024 - Semester 1", 
-            "color": "#2d3b45", # Unified professional dark color
+            "color": "#2d3b45", 
             "section": "Business"
         },
         {
@@ -235,7 +243,7 @@ else:
     if st.session_state.active_tab == "📊 Dashboard":
         st.markdown('<h1 class="main-title">Dashboard</h1>', unsafe_allow_html=True)
         
-        # Course Grid Layout for only the 3 original website courses
+        # Course Grid Layout
         cols = st.columns(3)
         for i, course in enumerate(st.session_state.courses):
             with cols[i % 3]:
