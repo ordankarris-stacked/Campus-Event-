@@ -172,6 +172,13 @@ if 'users' not in st.session_state:
         "student": {"password": "canvas2024", "role": "Student", "section": "General"}
     }
 
+if 'course_catalog' not in st.session_state:
+    st.session_state.course_catalog = {
+        "Business": "Econ 101, Marketing, Finance Basics.",
+        "Computer": "Python Basics, Data Structures, Web Dev.",
+        "Law": "Civil Law, Criminal Justice, Ethics."
+    }
+
 if 'logged_in_user' not in st.session_state:
     st.session_state.logged_in_user = None
 
@@ -491,12 +498,35 @@ else:
     elif choice == "📚 Courses":
         # Show courses based on the user's specific section
         display_section = user_section
-        st.header(f"Courses for {display_section}")
-        if display_section == "Business":
-            st.write("Current: Econ 101, Marketing, Finance Basics.")
-        elif display_section == "Computer":
-            st.write("Current: Python Basics, Data Structures, Web Dev.")
-        elif display_section == "Law":
-            st.write("Current: Civil Law, Criminal Justice, Ethics.")
+        
+        # Admin or General Faculty see everything
+        if user_role == "Admin" or (user_role == "Teacher" and user_section == "Faculty"):
+            st.header("📚 Master Course Catalog")
+            for section, info in st.session_state.course_catalog.items():
+                st.subheader(f"{section} Department")
+                st.info(info)
+                # Edit interface for Admin/Faculty Teachers
+                with st.expander(f"⚙️ Edit {section} Course List"):
+                    new_val = st.text_area(f"Update {section} courses:", value=info, key=f"edit_{section}")
+                    if st.button(f"Save {section} Changes", key=f"save_{section}"):
+                        st.session_state.course_catalog[section] = new_val
+                        st.success("Changes saved!")
+                        st.rerun()
+        
+        # Specific Section Users (Student or Dept-specific Teacher)
+        elif display_section in st.session_state.course_catalog:
+            st.header(f"📚 {display_section} Courses")
+            current_info = st.session_state.course_catalog[display_section]
+            st.write(f"**Current Track:** {current_info}")
+            
+            # If it's a teacher in a specific department, allow editing their specific department
+            if user_role == "Teacher":
+                st.markdown("---")
+                with st.expander(f"⚙️ Edit {display_section} Department Courses"):
+                    new_val = st.text_area("Update course information:", value=current_info)
+                    if st.button("Save Department Updates"):
+                        st.session_state.course_catalog[display_section] = new_val
+                        st.success("Department info updated!")
+                        st.rerun()
         else:
-            st.write("You are logged in as Faculty/Admin. You can view all course materials in the Master Catalog.")
+            st.write("Please select a course track from your advisor.")
