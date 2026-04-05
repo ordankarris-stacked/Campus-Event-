@@ -260,6 +260,7 @@ def show_login_page():
                         stored_creds = st.session_state.users[username]
                         if stored_creds["password"] == password:
                             st.session_state.logged_in_user = username
+                            # Fix for the TypeError shown in user screenshot
                             if username not in st.session_state.bookmarks:
                                 st.session_state.bookmarks[username] = []
                             st.rerun()
@@ -315,6 +316,10 @@ else:
     # CSS helper for sections
     section_class = f"sec-{user_section.lower()}" if user_section in ["Business", "Computer", "Law"] else ""
 
+    # Ensure bookmarks exist for current user to prevent TypeErrors
+    if current_user not in st.session_state.bookmarks:
+        st.session_state.bookmarks[current_user] = []
+
     # --- NAVIGATION SIDEBAR (Canvas Style) ---
     with st.sidebar:
         # Account Section (Interactive Button)
@@ -358,9 +363,6 @@ else:
     # --- MAIN CONTENT ---
     choice = st.session_state.active_tab
     
-    if current_user not in st.session_state.bookmarks:
-        st.session_state.bookmarks[current_user] = []
-
     if choice == "👤 Account":
         st.markdown(f'<h1 class="main-title">👤 User Profile</h1>', unsafe_allow_html=True)
         st.markdown("---")
@@ -429,7 +431,7 @@ else:
                 
                 c1, c2 = st.columns([1, 4])
                 with c1:
-                    is_saved = ev['id'] in st.session_state.bookmarks[current_user]
+                    is_saved = ev['id'] in st.session_state.bookmarks.get(current_user, [])
                     btn_label = "✅ Joined" if is_saved else "📥 Join Task"
                     if st.button(btn_label, key=f"join_{ev['id']}"):
                         if is_saved:
