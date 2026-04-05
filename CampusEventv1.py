@@ -95,6 +95,23 @@ st.markdown("""
         background-color: #ffd700;
         color: #000000;
         font-weight: bold;
+        border: none;
+    }
+    
+    /* Sidebar button specifics to look like Nav items */
+    [data-testid="stSidebar"] .stButton>button {
+        background-color: transparent;
+        color: white;
+        border: none;
+        padding: 10px 0px;
+        height: auto;
+        line-height: 1.2;
+        font-size: 11px;
+    }
+    
+    [data-testid="stSidebar"] .stButton>button:hover {
+        background-color: #2d2d2d;
+        color: white;
     }
 
     /* Hide default Streamlit sidebar radio selector but keep functionality */
@@ -176,16 +193,15 @@ with st.sidebar:
     nav_items = [
         {"id": "📡 Feed", "label": "Feed", "icon": "📡"},
         {"id": "🗓️ Calendar", "label": "Calendar", "icon": "📅"},
-        {"id": "➕ Post", "label": "Announce", "icon": "📥"},
+        {"id": "➕ Post", "label": "Announce", "icon": "➕"},
         {"id": "🔖 Saved", "label": "Inbox", "icon": "🔖"},
         {"id": "❓ Help", "label": "Help", "icon": "❓"}
     ]
 
     for item in nav_items:
         is_active = st.session_state.active_tab == item['id']
-        active_class = "nav-item-active" if is_active else ""
         
-        # Use a hidden button or link behavior to change state
+        # We use standard Streamlit buttons styled via CSS to behave like the Nav Items
         if st.button(f"{item['icon']}\n{item['label']}", key=f"nav_{item['id']}", use_container_width=True):
             st.session_state.active_tab = item['id']
             st.rerun()
@@ -201,48 +217,89 @@ if choice == "📡 Feed":
     with col2:
         cat_filter = st.selectbox("Category", ["All", "Workshop", "Social", "Sports", "Academic"])
 
+    # Show events in reverse chronological order
     for ev in reversed(st.session_state.events):
         if search.lower() in ev['title'].lower() and (cat_filter == "All" or ev['category'] == cat_filter):
             st.markdown(f"""
             <div class="event-card">
                 <h3>{ev['title']}</h3>
                 <p>📅 {ev['date']} | ⏰ {ev['time']} | 📍 {ev['location']}</p>
+                <p>👤 <b>Organizer:</b> {ev['organizer']}</p>
                 <p><i>{ev['description']}</i></p>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("Join / Save", key=f"join_{ev['id']}"):
-                st.session_state.bookmarks.append(ev['id'])
-                st.toast("Saved!")
+            
+            # Action buttons for the feed
+            c1, c2 = st.columns([1, 4])
+            with c1:
+                if st.button("Join / Save", key=f"join_{ev['id']}"):
+                    if ev['id'] not in st.session_state.bookmarks:
+                        st.session_state.bookmarks.append(ev['id'])
+                        st.toast(f"Saved {ev['title']}!")
+                    else:
+                        st.toast("Already bookmarked!")
 
 elif choice == "🗓️ Calendar":
     st.header("Event Schedule")
     if st.session_state.events:
         df = pd.DataFrame(st.session_state.events)
-        st.dataframe(df[['date', 'title', 'location']], use_container_width=True, hide_index=True)
+        df['date'] = pd.to_datetime(df['date'])
+        st.dataframe(
+            df[['date', 'title', 'location', 'category', 'organizer']].sort_values('date'), 
+            use_container_width=True, 
+            hide_index=True
+        )
+    else:
+        st.info("No events scheduled yet.")
 
 elif choice == "➕ Post":
     st.header("Post a New Event")
-    with st.form("event_form"):
+    st.write("Share an activity with the campus community.")
+    with st.form("event_form", clear_on_submit=True):
         title = st.text_input("Event Title*")
         col1, col2 = st.columns(2)
-        with col1: edate = st.date_input("Date", value=date.today())
-        with col2: etime = st.time_input("Time")
+        with col1: 
+            edate = st.date_input("Date", value=date.today())
+        with col2: 
+            etime = st.time_input("Time")
         loc = st.text_input("Location")
         cat = st.selectbox("Category", ["Workshop", "Social", "Sports", "Academic"])
-        org = st.text_input("Organizer*")
+        org = st.text_input("Organizer (Club/Dept)*")
         desc = st.text_area("Description")
-        if st.form_submit_button("Post to Hub"):
+        
+        if st.form_submit_button("Post to Hub 🚀"):
             if title and org:
                 add_event(title, edate, etime, loc, cat, org, desc)
-                st.success("Event Posted!")
+                st.success(f"Successfully posted '{title}'!")
                 st.balloons()
+            else:
+                st.error("Please provide both an Event Title and an Organizer.")
 
 elif choice == "🔖 Saved":
     st.header("Your Saved Events")
     bookmarked = [e for e in st.session_state.events if e['id'] in st.session_state.bookmarks]
-    for ev in bookmarked:
-        st.write(f"📌 **{ev['title']}** - {ev['date']}")
+    
+    if not bookmarked:
+        st.info("You haven't saved any events yet. Check the Feed to find interesting activities!")
+    else:
+        for ev in bookmarked:
+            with st.expander(f"📌 {ev['title']} - {ev['date']}"):
+                st.write(f"**Location:** {ev['location']}")
+                st.write(f"**Time:** {ev['time']}")
+                st.write(f"**Description:** {ev['description']}")
+                if st.button(f"Remove Bookmark", key=f"rem_{ev['id']}"):
+                    st.session_state.bookmarks.remove(ev['id'])
+                    st.rerun()
 
 elif choice == "❓ Help":
     st.header("Help & Support")
-    st.write("Need help using the Event Hub? Contact the Student Union or technical support.")
+    st.markdown("""
+    ### Welcome to the Campus Event Hub!
+    
+    - **📡 Feed**: Browse all upcoming events on campus.
+    - **🗓️ Calendar**: See events in a structured list view.
+    - **➕ Post**: Create and share your own events.
+    - **🔖 Saved**: Access events you've joined or saved for later.
+    
+    If you encounter any issues, please contact the student support team.
+    """)
