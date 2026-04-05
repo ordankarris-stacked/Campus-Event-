@@ -105,6 +105,19 @@ st.markdown("""
     .badge-student { background-color: #00acee; color: white; }
     .badge-admin { background-color: #ffd700; color: black; }
     
+    /* Section Badge Styles */
+    .section-badge {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        margin-left: 10px;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    .sec-business { background-color: #4CAF50; color: white; }
+    .sec-computer { background-color: #2196F3; color: white; }
+    .sec-law { background-color: #9C27B0; color: white; }
+
     /* Button styling */
     .stButton>button {
         background-color: #ffd700;
@@ -146,12 +159,14 @@ st.markdown("""
 
 # --- DATA PERSISTENCE ---
 if 'users' not in st.session_state:
-    # Structure: username: {"password": "...", "role": "..."}
+    # Added specific students with their respective sections
     st.session_state.users = {
-        "admin": {"password": "password123", "role": "Admin"},
-        "teacher_jane": {"password": "teach", "role": "Teacher"},
-        "student": {"password": "canvas2024", "role": "Student"},
-        "student_bob": {"password": "learn", "role": "Student"}
+        "admin": {"password": "password123", "role": "Admin", "section": "Faculty"},
+        "teacher_jane": {"password": "teach", "role": "Teacher", "section": "Faculty"},
+        "studentA": {"password": "pass", "role": "Student", "section": "Business"},
+        "studentB": {"password": "pass", "role": "Student", "section": "Computer"},
+        "studentC": {"password": "pass", "role": "Student", "section": "Law"},
+        "student": {"password": "canvas2024", "role": "Student", "section": "General"}
     }
 
 if 'logged_in_user' not in st.session_state:
@@ -208,7 +223,6 @@ def show_login_page():
                         stored_creds = st.session_state.users[username]
                         if stored_creds["password"] == password:
                             st.session_state.logged_in_user = username
-                            # Initialize user bookmarks upon login if they don't exist
                             if username not in st.session_state.bookmarks:
                                 st.session_state.bookmarks[username] = []
                             st.rerun()
@@ -222,6 +236,8 @@ def show_login_page():
                 new_user = st.text_input("Choose Username")
                 new_pass = st.text_input("Choose Password", type="password")
                 role = st.selectbox("I am a...", ["Student", "Teacher"])
+                # New section selection for registration
+                section = st.selectbox("Section", ["Business", "Computer", "Law"]) if role == "Student" else "Faculty"
                 reg_submit = st.form_submit_button("Create Account", use_container_width=True)
                 
                 if reg_submit:
@@ -230,9 +246,9 @@ def show_login_page():
                     elif new_user in st.session_state.users:
                         st.error("Username already exists.")
                     else:
-                        st.session_state.users[new_user] = {"password": new_pass, "role": role}
+                        st.session_state.users[new_user] = {"password": new_pass, "role": role, "section": section}
                         st.session_state.bookmarks[new_user] = []
-                        st.success(f"Account created as {role}! You can now login.")
+                        st.success(f"Account created in {section} section! You can now login.")
 
 # --- MAIN APP LOGIC ---
 def add_event(title, edate, etime, loc, cat, org, desc, etype="Task"):
@@ -247,14 +263,18 @@ if st.session_state.logged_in_user is None:
     show_login_page()
 else:
     current_user = st.session_state.logged_in_user
-    user_role = st.session_state.users[current_user]["role"]
+    user_data = st.session_state.users[current_user]
+    user_role = user_data["role"]
+    user_section = user_data.get("section", "General")
     
+    # CSS helper for sections
+    section_class = f"sec-{user_section.lower()}" if user_section in ["Business", "Computer", "Law"] else ""
+
     # --- NAVIGATION SIDEBAR (Canvas Style) ---
     with st.sidebar:
         # Account Section (Interactive Button)
         badge_class = f"badge-{user_role.lower()}"
         
-        # We wrap the account info in a button to make it clickable as per user request
         if st.button(f"👤\nAccount", key="nav_👤 Account", use_container_width=True):
             st.session_state.active_tab = "👤 Account"
             st.rerun()
@@ -262,7 +282,10 @@ else:
         st.markdown(f"""
             <div style="text-align: center; margin-top: -15px; margin-bottom: 10px;">
                 <div style="font-size: 10px; color: #aaa;">{current_user}</div>
-                <span class="role-badge {badge_class}">{user_role}</span>
+                <div style="display: flex; justify-content: center; gap: 5px; align-items: center;">
+                    <span class="role-badge {badge_class}">{user_role}</span>
+                    {f'<span class="section-badge {section_class}">{user_section}</span>' if user_role == "Student" else ''}
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -279,7 +302,6 @@ else:
             {"id": "📥 Inbox", "label": "Inbox", "icon": "📥"}
         ]
         
-        # Only Teachers and Admins get the "Assign" tab
         if user_role in ["Teacher", "Admin"]:
             nav_items.insert(3, {"id": "📝 Assign", "label": "Assign", "icon": "✍️"})
 
@@ -310,15 +332,17 @@ else:
             st.subheader("Account Details")
             st.write(f"**Username:** {current_user}")
             st.write(f"**Role:** {user_role}")
+            if user_role == "Student":
+                st.write(f"**Academic Section:** {user_section}")
             
             badge_class = f"badge-{user_role.lower()}"
             st.markdown(f"**Status:** <span class='role-badge {badge_class}'>Active {user_role}</span>", unsafe_allow_html=True)
             
             st.markdown("---")
-            st.info(f"You are currently logged in to the Campus LMS system as a {user_role}. Depending on your role, you have access to specific tools like 'Dashboard' for tasks or 'Assign' for creating curriculum.")
+            st.info(f"You are currently recognized as a member of the **{user_section}** department. Your access level is set to **{user_role}**.")
 
     elif choice == "📊 Dashboard":
-        st.markdown(f'<h1 class="main-title">🎓 Student Dashboard</h1>', unsafe_allow_html=True)
+        st.markdown(f'<h1 class="main-title">🎓 {user_section} Dashboard</h1>', unsafe_allow_html=True)
         col1, col2 = st.columns([2, 1])
         with col1:
             search = st.text_input("🔍 Search tasks/events...", "")
@@ -353,9 +377,8 @@ else:
                         st.rerun()
 
     elif choice == "📝 Assign":
-        # Only accessible to Teachers and Admins
         if user_role not in ["Teacher", "Admin"]:
-            st.error("Access Denied. Only Teachers can assign tasks.")
+            st.error("Access Denied.")
         else:
             st.header("Assign New Task / Quiz")
             with st.form("assignment_form", clear_on_submit=True):
@@ -370,7 +393,7 @@ else:
                 if st.form_submit_button("Post to Students 🚀"):
                     if title:
                         add_event(title, edate, etime, loc, cat, current_user, desc, etype="Task")
-                        st.success(f"Task '{title}' has been assigned to all students.")
+                        st.success(f"Task '{title}' assigned.")
                     else:
                         st.error("Please provide a title.")
 
@@ -386,7 +409,7 @@ else:
         bookmarked = [e for e in st.session_state.events if e['id'] in user_bookmarks]
         
         if not bookmarked:
-            st.info("You have no active tasks joined. Browse the Dashboard to join assignments.")
+            st.info("No active tasks.")
         else:
             for ev in bookmarked:
                 with st.expander(f"📌 {ev['title']} - Due: {ev['date']}"):
@@ -396,6 +419,12 @@ else:
                         st.rerun()
 
     elif choice == "📚 Courses":
-        st.header("My Courses")
-        st.write("Current Course Enrollment: Computer Science 101, Business Ethics, Advanced Calculus.")
-        st.info("Teachers can view student progress here (Feature coming soon).")
+        st.header(f"Courses for {user_section}")
+        if user_section == "Business":
+            st.write("Current: Econ 101, Marketing, Finance Basics.")
+        elif user_section == "Computer":
+            st.write("Current: Python Basics, Data Structures, Web Dev.")
+        elif user_section == "Law":
+            st.write("Current: Civil Law, Criminal Justice, Ethics.")
+        else:
+            st.write("Select a course track from your advisor.")
