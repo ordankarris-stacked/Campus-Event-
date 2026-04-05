@@ -6,35 +6,53 @@ import calendar
 # --- CONFIGURATION & STYLING ---
 st.set_page_config(page_title="Campus Event Hub", page_icon="🎓", layout="wide")
 
-# Improved CSS for visibility and contrast
+# Modern Dark Theme CSS for high visibility
 st.markdown("""
     <style>
-    /* Main background color */
+    /* Force a dark background for the entire app */
     .stApp {
-        background-color: #f0f2f6;
+        background-color: #0e1117;
+        color: #ffffff;
     }
     
-    /* Event Card Styling */
+    /* Main titles and headers visibility */
+    h1, h2, h3, .stMarkdown p {
+        color: #ffffff !important;
+    }
+    
+    /* Highlighted Titles */
+    .main-title {
+        color: #ffd700 !important; /* Gold color for high contrast */
+        font-weight: 800;
+        font-size: 3rem;
+    }
+
+    .sub-title {
+        color: #e0e0e0 !important;
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+    }
+    
+    /* Event Card Styling - Dark card with light text */
     .event-card { 
         padding: 25px; 
         border-radius: 12px; 
-        border-left: 5px solid #007bff;
-        background-color: #ffffff;
+        border: 1px solid #30363d;
+        border-left: 5px solid #ffd700;
+        background-color: #1c2128;
         margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        color: #1f2937; /* Dark gray for text */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
     
-    /* Heading inside card */
+    /* Text details inside card */
     .event-card h3 {
-        color: #111827 !important;
+        color: #ffd700 !important;
         margin-top: 0px;
         font-weight: 700;
     }
     
-    /* Text details inside card */
     .event-card p {
-        color: #374151 !important;
+        color: #ced4da !important;
         margin-bottom: 8px;
         line-height: 1.5;
     }
@@ -46,30 +64,30 @@ st.markdown("""
         border-radius: 20px;
         font-size: 0.75em;
         font-weight: 600;
-        background-color: #e5e7eb;
-        color: #374151;
+        background-color: #ffd700;
+        color: #000000;
         margin-bottom: 10px;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
     }
     
-    /* Join Button Styling */
+    /* Form and Input styling to ensure visibility */
+    .stTextInput input, .stSelectbox div, .stTextArea textarea {
+        background-color: #262730 !important;
+        color: white !important;
+        border: 1px solid #4b4b4b !important;
+    }
+
+    /* Button styling */
     .stButton>button {
-        border-radius: 8px;
-        font-weight: 600;
-        background-color: #007bff;
-        color: white;
-        transition: all 0.3s ease;
+        background-color: #ffd700;
+        color: #000000;
+        font-weight: bold;
+        border: none;
     }
     
     .stButton>button:hover {
-        background-color: #0056b3;
-        border-color: #0056b3;
-    }
-
-    /* Fix for Search bar visibility */
-    .stTextInput input {
-        color: #111827;
+        background-color: #ffc107;
+        color: #000000;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -122,12 +140,13 @@ def add_event(title, edate, etime, loc, cat, org, desc):
 
 # --- UI LAYOUT ---
 
-st.title("🎓 Campus Event Hub")
-st.markdown("Discover and join events happening around your campus.")
+st.markdown('<h1 class="main-title">🎓 Campus Event Hub</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Connect, Discover, and Engage with your University Community.</p>', unsafe_allow_html=True)
 
 # Navigation Sidebar
+st.sidebar.title("Navigation")
 menu = ["📡 Event Feed", "🗓️ Calendar View", "➕ Announce Event", "🔖 My Bookmarks"]
-choice = st.sidebar.radio("Navigation", menu)
+choice = st.sidebar.radio("Go to", menu)
 
 # --- PAGE: EVENT FEED ---
 if choice == "📡 Event Feed":
@@ -220,7 +239,7 @@ elif choice == "🔖 My Bookmarks":
     st.header("Your Saved Events")
     
     if not st.session_state.bookmarks:
-        st.info("You haven't bookmarked any events yet. Head back to the Feed to find some!")
+        st.info("You haven't bookmarked any events yet.")
     else:
         bookmarked_events = [e for e in st.session_state.events if e['id'] in st.session_state.bookmarks]
         for ev in bookmarked_events:
@@ -236,4 +255,4 @@ elif choice == "🔖 My Bookmarks":
 
 # --- FOOTER ---
 st.sidebar.markdown("---")
-st.sidebar.caption("Campus Hub v1.1 | Visual Accessibility Update")
+st.sidebar.caption("Campus Hub v1.2 | Dark Mode Visual Fix")
