@@ -159,7 +159,7 @@ st.markdown("""
 
 # --- DATA PERSISTENCE ---
 if 'users' not in st.session_state:
-    # Added specific students with their respective sections
+    # Pre-configured student accounts with their respective sections and passwords
     st.session_state.users = {
         "admin": {"password": "password123", "role": "Admin", "section": "Faculty"},
         "teacher_jane": {"password": "teach", "role": "Teacher", "section": "Faculty"},
