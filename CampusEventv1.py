@@ -173,20 +173,46 @@ if 'logged_in_user' not in st.session_state:
     st.session_state.logged_in_user = None
 
 if 'events' not in st.session_state:
+    # Events now have a 'target_section' field to implement the barrier
     st.session_state.events = [
         {
             "id": 1,
-            "title": "Introduction to Python Quiz",
+            "title": "Econ 101 Quiz",
             "date": date(2024, 4, 15),
             "time": "14:00",
             "location": "Online / Canvas",
             "category": "Quiz",
             "organizer": "teacher_jane",
-            "description": "A mandatory quiz covering the first three weeks of Python basics.",
-            "type": "Task"
+            "description": "Weekly quiz on supply and demand.",
+            "type": "Task",
+            "target_section": "Business"
         },
         {
             "id": 2,
+            "title": "Python Basics Assignment",
+            "date": date(2024, 4, 16),
+            "time": "23:59",
+            "location": "Canvas Submission",
+            "category": "Assignment",
+            "organizer": "teacher_jane",
+            "description": "Submit your code for the calculator project.",
+            "type": "Task",
+            "target_section": "Computer"
+        },
+        {
+            "id": 3,
+            "title": "Civil Law Case Study",
+            "date": date(2024, 4, 17),
+            "time": "12:00",
+            "location": "Lecture Hall B",
+            "category": "Task",
+            "organizer": "teacher_jane",
+            "description": "Analyze the tort liability document provided in class.",
+            "type": "Task",
+            "target_section": "Law"
+        },
+        {
+            "id": 4,
             "title": "Spring Music Festival",
             "date": date(2024, 4, 20),
             "time": "18:00",
@@ -194,7 +220,8 @@ if 'events' not in st.session_state:
             "category": "Social",
             "organizer": "admin",
             "description": "Enjoy a night of live performances.",
-            "type": "Event"
+            "type": "Event",
+            "target_section": "All" # Visible to everyone
         }
     ]
 
@@ -251,11 +278,12 @@ def show_login_page():
                         st.success(f"Account created in {section} section! You can now login.")
 
 # --- MAIN APP LOGIC ---
-def add_event(title, edate, etime, loc, cat, org, desc, etype="Task"):
+def add_event(title, edate, etime, loc, cat, org, desc, target="All", etype="Task"):
     new_id = max([e['id'] for e in st.session_state.events]) + 1 if st.session_state.events else 1
     st.session_state.events.append({
         "id": new_id, "title": title, "date": edate, "time": etime.strftime("%H:%M"),
-        "location": loc, "category": cat, "organizer": org, "description": desc, "type": etype
+        "location": loc, "category": cat, "organizer": org, "description": desc, 
+        "type": etype, "target_section": target
     })
 
 # Check if user is logged in
@@ -349,7 +377,19 @@ else:
         with col2:
             cat_filter = st.selectbox("Type", ["All", "Quiz", "Assignment", "Task", "Social"])
 
-        for ev in reversed(st.session_state.events):
+        # BARRIER LOGIC: Filter events based on target_section
+        visible_events = []
+        for ev in st.session_state.events:
+            target = ev.get('target_section', 'All')
+            # Students only see 'All' or their specific section
+            if user_role == "Student":
+                if target == "All" or target == user_section:
+                    visible_events.append(ev)
+            else:
+                # Teachers/Admins see everything
+                visible_events.append(ev)
+
+        for ev in reversed(visible_events):
             matches_search = search.lower() in ev['title'].lower()
             matches_cat = (cat_filter == "All" or ev['category'] == cat_filter)
             
@@ -388,19 +428,31 @@ else:
                 with col2: etime = st.time_input("Due Time")
                 loc = st.text_input("Location / Link", value="Canvas Online")
                 cat = st.selectbox("Category", ["Assignment", "Quiz", "Task", "Discussion"])
+                # Let teacher pick the target section
+                target_sec = st.selectbox("Assign to Section", ["All", "Business", "Computer", "Law"])
                 desc = st.text_area("Instructions / Description")
                 
                 if st.form_submit_button("Post to Students 🚀"):
                     if title:
-                        add_event(title, edate, etime, loc, cat, current_user, desc, etype="Task")
-                        st.success(f"Task '{title}' assigned.")
+                        add_event(title, edate, etime, loc, cat, current_user, desc, target=target_sec, etype="Task")
+                        st.success(f"Task '{title}' assigned to {target_sec}.")
                     else:
                         st.error("Please provide a title.")
 
     elif choice == "🗓️ Calendar":
         st.header("Academic Calendar")
-        if st.session_state.events:
-            df = pd.DataFrame(st.session_state.events)
+        # Calendar also follows the barrier logic
+        visible_events = []
+        for ev in st.session_state.events:
+            target = ev.get('target_section', 'All')
+            if user_role == "Student":
+                if target == "All" or target == user_section:
+                    visible_events.append(ev)
+            else:
+                visible_events.append(ev)
+
+        if visible_events:
+            df = pd.DataFrame(visible_events)
             st.dataframe(df[['date', 'title', 'category', 'organizer']].sort_values('date'), use_container_width=True, hide_index=True)
 
     elif choice == "📥 Inbox":
