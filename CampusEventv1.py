@@ -153,15 +153,18 @@ if 'users' not in st.session_state:
         "student": {"password": "pass", "role": "Student", "section": "Computer"}
     }
 
-# ORIGINAL COURSE DATA - Restored to website's original sections
+# UPDATED COURSE DATA - Using standardized brand colors and original website sections only
 if 'courses' not in st.session_state:
+    # Standard color for all cards to keep "our own style" without distinct varied colors
+    brand_color = "#1c2128" # Matching the app's dark neutral or we can use the Red brand color
+    
     st.session_state.courses = [
         {
             "id": "BUS101", 
             "name": "Economics & Marketing", 
             "code": "BUS-101 Business Fundamentals", 
             "term": "2024 - Semester 1", 
-            "color": "#4CAF50",
+            "color": "#2d3b45", # Unified professional dark color
             "section": "Business"
         },
         {
@@ -169,7 +172,7 @@ if 'courses' not in st.session_state:
             "name": "Python & Data Structures", 
             "code": "CS-101 Computer Science I", 
             "term": "2024 - Semester 1", 
-            "color": "#2196F3",
+            "color": "#2d3b45",
             "section": "Computer"
         },
         {
@@ -177,7 +180,7 @@ if 'courses' not in st.session_state:
             "name": "Civil Law & Ethics", 
             "code": "LAW-101 Introduction to Law", 
             "term": "2024 - Semester 1", 
-            "color": "#9C27B0",
+            "color": "#2d3b45",
             "section": "Law"
         }
     ]
@@ -232,7 +235,7 @@ else:
     if st.session_state.active_tab == "📊 Dashboard":
         st.markdown('<h1 class="main-title">Dashboard</h1>', unsafe_allow_html=True)
         
-        # Course Grid Layout for the 3 original courses
+        # Course Grid Layout for only the 3 original website courses
         cols = st.columns(3)
         for i, course in enumerate(st.session_state.courses):
             with cols[i % 3]:
@@ -247,10 +250,10 @@ else:
                         <div class="course-term">{course['term']}</div>
                     </div>
                     <div class="course-card-footer">
-                        <span>📢</span>
-                        <span>📝</span>
-                        <span>💬</span>
-                        <span>📁</span>
+                        <span title="Announcements">📢</span>
+                        <span title="Assignments">📝</span>
+                        <span title="Discussions">💬</span>
+                        <span title="Files">📁</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
