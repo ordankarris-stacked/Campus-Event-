@@ -32,75 +32,73 @@ st.markdown("""
         margin-bottom: 10px;
     }
 
-    /* Custom Navigation Item Styling */
-    .nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 15px 5px;
-        color: #ffffff;
-        text-decoration: none;
-        transition: background 0.3s;
-        cursor: pointer;
-        text-align: center;
-    }
-    
-    .nav-item:hover {
-        background-color: #2d2d2d;
-    }
-
-    .nav-icon {
-        font-size: 24px;
-        margin-bottom: 5px;
-    }
-
-    .nav-text {
-        font-size: 12px;
-        font-weight: 500;
-    }
-
     /* Standard high visibility colors */
     h1, h2, h3, .stMarkdown p {
         color: #ffffff !important;
     }
     
     .main-title {
-        color: #ffd700 !important; 
+        color: #ffffff !important; 
         font-weight: 800;
-        font-size: 2.5rem;
-    }
-
-    /* Event Card Styling */
-    .event-card { 
-        padding: 25px; 
-        border-radius: 12px; 
-        border: 1px solid #30363d;
-        border-left: 5px solid #ffd700;
-        background-color: #1c2128;
+        font-size: 2rem;
         margin-bottom: 20px;
     }
-    
-    .event-card h3 {
-        color: #ffd700 !important;
-        margin-bottom: 10px;
+
+    /* Course Card Styling based on screenshot */
+    .course-card {
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        color: #2d3b45;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
     
-    .event-details {
-        color: #e6edf3 !important;
-        font-size: 0.95rem;
-        line-height: 1.6;
+    .course-card-banner {
+        height: 120px;
+        width: 100%;
+        position: relative;
+    }
+    
+    .course-card-content {
+        padding: 15px;
+        flex-grow: 1;
+        background-color: #ffffff;
+    }
+    
+    .course-title {
+        color: #E03E2D;
+        font-weight: bold;
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .course-subtitle {
+        font-size: 0.8rem;
+        color: #556b7d;
+        margin-bottom: 2px;
+    }
+    
+    .course-term {
+        font-size: 0.75rem;
+        color: #7d8a96;
+    }
+    
+    .course-card-footer {
+        padding: 10px 15px;
+        border-top: 1px solid #f5f5f5;
+        display: flex;
+        gap: 15px;
+        color: #7d8a96;
     }
 
-    /* Course Mini Card for Dashboard */
-    .course-mini-card {
-        background-color: #1c2128;
-        border: 1px solid #30363d;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 10px;
-    }
-    
     /* Role Badge */
     .role-badge {
         padding: 2px 8px;
@@ -112,7 +110,6 @@ st.markdown("""
     }
     .badge-teacher { background-color: #E03E2D; color: white; }
     .badge-student { background-color: #00acee; color: white; }
-    .badge-admin { background-color: #ffd700; color: black; }
     
     /* Section Badge Styles */
     .section-badge {
@@ -125,17 +122,8 @@ st.markdown("""
     }
     .sec-business { background-color: #4CAF50; color: white; }
     .sec-computer { background-color: #2196F3; color: white; }
-    .sec-law { background-color: #9C27B0; color: white; }
 
-    /* Button styling */
-    .stButton>button {
-        background-color: #ffd700;
-        color: #000000;
-        font-weight: bold;
-        border: none;
-    }
-    
-    /* Sidebar button specifics to look like Nav items */
+    /* Button styling for sidebar */
     [data-testid="stSidebar"] .stButton>button {
         background-color: transparent;
         color: white;
@@ -151,98 +139,36 @@ st.markdown("""
     
     [data-testid="stSidebar"] .stButton>button:hover {
         background-color: #2d2d2d;
-        color: white;
+        color: #E03E2D;
     }
 
-    /* Account button specific style override */
-    .account-nav-btn button {
-        height: 100px !important;
-    }
-
-    /* Hide default Streamlit sidebar radio selector */
-    div[data-testid="stSidebarUserContent"] .stRadio {
-        display: none;
-    }
+    .stButton>button p { color: inherit !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- DATA PERSISTENCE ---
+# --- INITIALIZE STATE ---
 if 'users' not in st.session_state:
-    # Pre-configured student and teacher accounts
     st.session_state.users = {
         "admin": {"password": "password123", "role": "Admin", "section": "Faculty"},
-        "teacher_jane": {"password": "teach", "role": "Teacher", "section": "Faculty"},
-        "teacherA": {"password": "pass", "role": "Teacher", "section": "Business"},
-        "teacherB": {"password": "pass", "role": "Teacher", "section": "Computer"},
-        "teacherC": {"password": "pass", "role": "Teacher", "section": "Law"},
-        "studentA": {"password": "pass", "role": "Student", "section": "Business"},
-        "studentB": {"password": "pass", "role": "Student", "section": "Computer"},
-        "studentC": {"password": "pass", "role": "Student", "section": "Law"},
-        "student": {"password": "canvas2024", "role": "Student", "section": "General"}
+        "student": {"password": "pass", "role": "Student", "section": "Computer"}
     }
 
-if 'course_catalog' not in st.session_state:
-    st.session_state.course_catalog = {
-        "Business": "Econ 101, Marketing, Finance Basics.",
-        "Computer": "Python Basics, Data Structures, Web Dev.",
-        "Law": "Civil Law, Criminal Justice, Ethics."
-    }
+# Course Data representing the screenshot content
+if 'courses' not in st.session_state:
+    st.session_state.courses = [
+        {"id": "MENG1111", "name": "ENGLISH I", "code": "MENG1111-114 ENGLISH I", "term": "24/25 - Semester 1", "color": "#435d3f"},
+        {"id": "MATH11", "name": "CALCULUS", "code": "(25/26-S1) CALCULUS - MATH11...", "term": "25/26 - Semester 1", "color": "#913b91"},
+        {"id": "DATASTR", "name": "DATA STRUCTURES", "code": "(25/26-S1) DATA STRUCTURES A...", "term": "25/26 - Semester 1", "color": "#1a734d"},
+        {"id": "INTROTOD", "name": "INTRODUCTION TO DESIGN", "code": "(25/26-S1) INTRODUCTION TO D...", "term": "25/26 - Semester 1", "color": "#4a3e4e"},
+        {"id": "INTROTOP", "name": "INTRODUCTION TO PROGRAMMING", "code": "(25/26-S1) INTRODUCTION TO P...", "term": "25/26 - Semester 1", "color": "#3f4d3f"},
+        {"id": "OPSYS", "name": "OPERATING SYSTEMS", "code": "(25/26-S1) OPERATING SYSTEMS...", "term": "25/26 - Semester 1", "color": "#d93025"},
+        {"id": "PROBSTAT", "name": "PROBABILITY AND STATISTICS", "code": "(25/26-S1) PROBABILITY AND ST...", "term": "25/26 - Semester 1", "color": "#334c4c"},
+        {"id": "ADVPROG", "name": "ADVANCED PROGRAMMING", "code": "ADVANCED PROGRAMMING - C...", "term": "25/26 - Semester 2", "color": "#0063a3"},
+        {"id": "AFFCA", "name": "AFFCA001-001", "code": "AFFCA001-001", "term": "25/26 - Semester 2", "color": "#4a3e4e"},
+    ]
 
 if 'logged_in_user' not in st.session_state:
     st.session_state.logged_in_user = None
-
-if 'events' not in st.session_state:
-    # Events now have a 'target_section' field to implement the barrier
-    st.session_state.events = [
-        {
-            "id": 1,
-            "title": "Econ 101 Quiz",
-            "date": date(2024, 4, 15),
-            "time": "14:00",
-            "location": "Online / Canvas",
-            "category": "Quiz",
-            "organizer": "teacherA",
-            "description": "Weekly quiz on supply and demand.",
-            "type": "Task",
-            "target_section": "Business"
-        },
-        {
-            "id": 2,
-            "title": "Python Basics Assignment",
-            "date": date(2024, 4, 16),
-            "time": "23:59",
-            "location": "Canvas Submission",
-            "category": "Assignment",
-            "organizer": "teacherB",
-            "description": "Submit your code for the calculator project.",
-            "type": "Task",
-            "target_section": "Computer"
-        },
-        {
-            "id": 3,
-            "title": "Civil Law Case Study",
-            "date": date(2024, 4, 17),
-            "time": "12:00",
-            "location": "Lecture Hall B",
-            "category": "Task",
-            "organizer": "teacherC",
-            "description": "Analyze the tort liability document provided in class.",
-            "type": "Task",
-            "target_section": "Law"
-        },
-        {
-            "id": 4,
-            "title": "Spring Music Festival",
-            "date": date(2024, 4, 20),
-            "time": "18:00",
-            "location": "Main Courtyard",
-            "category": "Social",
-            "organizer": "admin",
-            "description": "Enjoy a night of live performances.",
-            "type": "Event",
-            "target_section": "All" # Visible to everyone
-        }
-    ]
 
 if 'bookmarks' not in st.session_state:
     st.session_state.bookmarks = {}
@@ -251,330 +177,77 @@ if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "📊 Dashboard"
 
 # --- AUTHENTICATION UI ---
-def show_login_page():
-    st.markdown('<h1 style="text-align: center; color: #ffd700;">🎓 Campus LMS Login</h1>', unsafe_allow_html=True)
-    
+if st.session_state.logged_in_user is None:
+    st.markdown('<h1 style="text-align: center; color: #ffffff;">🎓 Campus LMS</h1>', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        tab1, tab2 = st.tabs(["Login", "Register"])
-        
-        with tab1:
-            with st.form("login_form"):
-                username = st.text_input("Username")
-                password = st.text_input("Password", type="password")
-                submit = st.form_submit_button("Sign In", use_container_width=True)
-                
-                if submit:
-                    if username in st.session_state.users:
-                        stored_creds = st.session_state.users[username]
-                        if stored_creds["password"] == password:
-                            st.session_state.logged_in_user = username
-                            # Fix for the TypeError shown in user screenshot
-                            if username not in st.session_state.bookmarks:
-                                st.session_state.bookmarks[username] = []
-                            st.rerun()
-                        else:
-                            st.error("Invalid password.")
-                    else:
-                        st.error("User not found.")
-        
-        with tab2:
-            with st.form("register_form"):
-                new_user = st.text_input("Choose Username")
-                new_pass = st.text_input("Choose Password", type="password")
-                role = st.selectbox("I am a...", ["Student", "Teacher", "Admin"])
-                
-                # Dynamic Section Selection: Only students are forced to pick a major
-                if role == "Student":
-                    section = st.selectbox("Academic Section (Major)", ["Business", "Computer", "Law"])
-                elif role == "Teacher":
-                    section = st.selectbox("Department", ["Faculty", "Business", "Computer", "Law"])
-                else:
-                    section = "Faculty" # Admins are always Faculty
-                    
-                reg_submit = st.form_submit_button("Create Account", use_container_width=True)
-                
-                if reg_submit:
-                    if not new_user or not new_pass:
-                        st.warning("Please fill in all fields.")
-                    elif new_user in st.session_state.users:
-                        st.error("Username already exists.")
-                    else:
-                        st.session_state.users[new_user] = {"password": new_pass, "role": role, "section": section}
-                        st.session_state.bookmarks[new_user] = []
-                        st.success(f"Account created as {role}! You can now login.")
-
-# --- MAIN APP LOGIC ---
-def add_event(title, edate, etime, loc, cat, org, desc, target="All", etype="Task"):
-    new_id = max([e['id'] for e in st.session_state.events]) + 1 if st.session_state.events else 1
-    st.session_state.events.append({
-        "id": new_id, "title": title, "date": edate, "time": etime.strftime("%H:%M"),
-        "location": loc, "category": cat, "organizer": org, "description": desc, 
-        "type": etype, "target_section": target
-    })
-
-# Check if user is logged in
-if st.session_state.logged_in_user is None:
-    show_login_page()
+        with st.form("login"):
+            u = st.text_input("Username")
+            p = st.text_input("Password", type="password")
+            if st.form_submit_button("Login", use_container_width=True):
+                if u in st.session_state.users and st.session_state.users[u]["password"] == p:
+                    st.session_state.logged_in_user = u
+                    # FIX: Ensure user key exists in bookmarks to prevent TypeError
+                    if u not in st.session_state.bookmarks:
+                        st.session_state.bookmarks[u] = []
+                    st.rerun()
+                else: st.error("Login failed")
 else:
     current_user = st.session_state.logged_in_user
     user_data = st.session_state.users[current_user]
-    user_role = user_data["role"]
-    user_section = user_data.get("section", "General")
     
-    # CSS helper for sections
-    section_class = f"sec-{user_section.lower()}" if user_section in ["Business", "Computer", "Law"] else ""
-
-    # Ensure bookmarks exist for current user to prevent TypeErrors
+    # Global fix check
     if current_user not in st.session_state.bookmarks:
         st.session_state.bookmarks[current_user] = []
 
-    # --- NAVIGATION SIDEBAR (Canvas Style) ---
+    # --- SIDEBAR ---
     with st.sidebar:
-        # Account Section (Interactive Button)
-        badge_class = f"badge-{user_role.lower()}"
+        if st.button("👤\nAccount", use_container_width=True): st.session_state.active_tab = "👤 Account"
+        st.markdown(f'<div style="text-align:center; font-size:10px; color:#aaa; margin-top:-10px;">{current_user}</div>', unsafe_allow_html=True)
         
-        if st.button(f"👤\nAccount", key="nav_👤 Account", use_container_width=True):
-            st.session_state.active_tab = "👤 Account"
-            st.rerun()
-            
-        st.markdown(f"""
-            <div style="text-align: center; margin-top: -15px; margin-bottom: 10px;">
-                <div style="font-size: 10px; color: #aaa;">{current_user}</div>
-                <div style="display: flex; justify-content: center; gap: 5px; align-items: center;">
-                    <span class="role-badge {badge_class}">{user_role}</span>
-                    {f'<span class="section-badge {section_class}">{user_section}</span>' if user_role != "Admin" else ''}
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        if st.button("Logout", key="logout_btn", use_container_width=True):
+        if st.button("⏲️\nDashboard", use_container_width=True): st.session_state.active_tab = "📊 Dashboard"
+        if st.button("📖\nCourses", use_container_width=True): st.session_state.active_tab = "📚 Courses"
+        if st.button("📅\nCalendar", use_container_width=True): st.session_state.active_tab = "🗓️ Calendar"
+        if st.button("📥\nInbox", use_container_width=True): st.session_state.active_tab = "📥 Inbox"
+        
+        st.markdown("---")
+        if st.button("Logout"):
             st.session_state.logged_in_user = None
             st.rerun()
 
-        st.markdown("---")
-
-        nav_items = [
-            {"id": "📊 Dashboard", "label": "Dashboard", "icon": "⏲️"},
-            {"id": "📚 Courses", "label": "Courses", "icon": "📖"},
-            {"id": "🗓️ Calendar", "label": "Calendar", "icon": "📅"},
-            {"id": "📥 Inbox", "label": "Inbox", "icon": "📥"}
-        ]
-        
-        if user_role in ["Teacher", "Admin"]:
-            nav_items.insert(3, {"id": "📝 Assign", "label": "Assign", "icon": "✍️"})
-
-        for item in nav_items:
-            if st.button(f"{item['icon']}\n{item['label']}", key=f"nav_{item['id']}", use_container_width=True):
-                st.session_state.active_tab = item['id']
-                st.rerun()
-
     # --- MAIN CONTENT ---
-    choice = st.session_state.active_tab
-    
-    if choice == "👤 Account":
-        st.markdown(f'<h1 class="main-title">👤 User Profile</h1>', unsafe_allow_html=True)
-        st.markdown("---")
+    if st.session_state.active_tab == "📊 Dashboard":
+        st.markdown('<h1 class="main-title">Dashboard</h1>', unsafe_allow_html=True)
         
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.markdown(f"""
-                <div style="background: #1c2128; padding: 40px; border-radius: 50%; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; border: 2px solid #ffd700; margin: auto;">
-                    <span style="font-size: 60px;">👤</span>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.subheader("Account Details")
-            st.write(f"**Username:** {current_user}")
-            st.write(f"**Role:** {user_role}")
-            if user_role != "Admin":
-                st.write(f"**Assigned Section:** {user_section}")
-            
-            badge_class = f"badge-{user_role.lower()}"
-            st.markdown(f"**Status:** <span class='role-badge {badge_class}'>Active {user_role}</span>", unsafe_allow_html=True)
-            
-            st.markdown("---")
-            st.info(f"You are currently recognized as a member of the **{user_section}** department. Your access level is set to **{user_role}**.")
-
-    elif choice == "📊 Dashboard":
-        header_text = f"🎓 {user_section} Dashboard" if user_role != "Admin" else "🎓 Master Admin Dashboard"
-        st.markdown(f'<h1 class="main-title">{header_text}</h1>', unsafe_allow_html=True)
-        
-        col_main, col_side = st.columns([3, 1])
-        
-        with col_main:
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                search = st.text_input("🔍 Search tasks/events...", "")
-            with col2:
-                cat_filter = st.selectbox("Type", ["All", "Quiz", "Assignment", "Task", "Social"])
-
-            # BARRIER LOGIC: Filter events based on target_section
-            visible_events = []
-            for ev in st.session_state.events:
-                target = ev.get('target_section', 'All')
-                # Students only see 'All' or their specific section
-                if user_role == "Student":
-                    if target == "All" or target == user_section:
-                        visible_events.append(ev)
-                # Teachers only see 'All' or their own specific section (if they aren't 'Faculty')
-                elif user_role == "Teacher":
-                    if user_section == "Faculty" or target == "All" or target == user_section:
-                        visible_events.append(ev)
-                else:
-                    # Admins see everything
-                    visible_events.append(ev)
-
-            for ev in reversed(visible_events):
-                matches_search = search.lower() in ev['title'].lower()
-                matches_cat = (cat_filter == "All" or ev['category'] == cat_filter)
-                
-                if matches_search and matches_cat:
-                    st.markdown(f"""
-                    <div class="event-card">
-                        <h3>{ev['title']} <span style="font-size: 12px; color: #aaa;">({ev['category']})</span></h3>
-                        <div class="event-details">
-                            <b>📅 Due/Date:</b> {ev['date']} | <b>⏰ Time:</b> {ev['time']} | <b>📍 Location:</b> {ev['location']}<br>
-                            <b>👤 Assigned by:</b> {ev['organizer']}<br><br>
-                            <i>{ev['description']}</i>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    c1, c2 = st.columns([1, 4])
-                    with c1:
-                        is_saved = ev['id'] in st.session_state.bookmarks.get(current_user, [])
-                        btn_label = "✅ Joined" if is_saved else "📥 Join Task"
-                        if st.button(btn_label, key=f"join_{ev['id']}"):
-                            if is_saved:
-                                st.session_state.bookmarks[current_user].remove(ev['id'])
-                            else:
-                                st.session_state.bookmarks[current_user].append(ev['id'])
-                            st.rerun()
-        
-        with col_side:
-            st.markdown("### 📚 My Courses")
-            # Logic to show the relevant department course list in the dashboard sidebar
-            if user_role == "Admin" or user_section == "Faculty":
-                # Admins/Faculty see a summary or list of all sections
-                for section, info in st.session_state.course_catalog.items():
-                    st.markdown(f"""
-                        <div class="course-mini-card">
-                            <b style="color:#ffd700;">{section} Dept</b><br>
-                            <span style="font-size:0.85rem; color:#ccc;">{info[:40]}...</span>
-                        </div>
-                    """, unsafe_allow_html=True)
-            else:
-                # Specific section users see their own track
-                current_info = st.session_state.course_catalog.get(user_section, "Check advisor for course list.")
+        # Course Grid Layout
+        cols = st.columns(3)
+        for i, course in enumerate(st.session_state.courses):
+            with cols[i % 3]:
                 st.markdown(f"""
-                    <div class="course-mini-card">
-                        <b style="color:#ffd700;">{user_section} Track</b><br>
-                        <span style="font-size:0.9rem; color:#ccc;">{current_info}</span>
+                <div class="course-card">
+                    <div class="course-card-banner" style="background-color: {course['color']};">
+                        <div style="position: absolute; right: 10px; top: 10px; color: white; cursor: pointer;">⋮</div>
                     </div>
+                    <div class="course-card-content">
+                        <div class="course-title">{course['code']}</div>
+                        <div class="course-subtitle">{course['name']}</div>
+                        <div class="course-term">{course['term']}</div>
+                    </div>
+                    <div class="course-card-footer">
+                        <span>📢</span>
+                        <span>📝</span>
+                        <span>💬</span>
+                        <span>📁</span>
+                    </div>
+                </div>
                 """, unsafe_allow_html=True)
-            
-            st.markdown("---")
-            st.markdown("### 📋 To Do")
-            user_bookmarks = st.session_state.bookmarks.get(current_user, [])
-            if not user_bookmarks:
-                st.caption("Nothing planned yet. Join a task to see it here!")
-            else:
-                for ev_id in user_bookmarks:
-                    ev_item = next((e for e in st.session_state.events if e['id'] == ev_id), None)
-                    if ev_item:
-                        st.markdown(f"- {ev_item['title']} ({ev_item['date']})")
+                # Small spacer between cards
+                st.write("")
 
-    elif choice == "📝 Assign":
-        if user_role not in ["Teacher", "Admin"]:
-            st.error("Access Denied.")
-        else:
-            st.header("Assign New Task / Quiz")
-            with st.form("assignment_form", clear_on_submit=True):
-                title = st.text_input("Title (e.g., Math Quiz 1)*")
-                col1, col2 = st.columns(2)
-                with col1: edate = st.date_input("Due Date", value=date.today())
-                with col2: etime = st.time_input("Due Time")
-                loc = st.text_input("Location / Link", value="Canvas Online")
-                cat = st.selectbox("Category", ["Assignment", "Quiz", "Task", "Discussion"])
-                # Let teacher pick the target section
-                target_sec = st.selectbox("Assign to Section", ["All", "Business", "Computer", "Law"])
-                desc = st.text_area("Instructions / Description")
-                
-                if st.form_submit_button("Post to Students 🚀"):
-                    if title:
-                        add_event(title, edate, etime, loc, cat, current_user, desc, target=target_sec, etype="Task")
-                        st.success(f"Task '{title}' assigned to {target_sec}.")
-                    else:
-                        st.error("Please provide a title.")
+    elif st.session_state.active_tab == "📚 Courses":
+        st.markdown('<h1 class="main-title">All Courses</h1>', unsafe_allow_html=True)
+        # List view or search could go here
+        st.table(pd.DataFrame(st.session_state.courses)[['id', 'name', 'term']])
 
-    elif choice == "🗓️ Calendar":
-        st.header("Academic Calendar")
-        # Calendar also follows the barrier logic
-        visible_events = []
-        for ev in st.session_state.events:
-            target = ev.get('target_section', 'All')
-            if user_role == "Student":
-                if target == "All" or target == user_section:
-                    visible_events.append(ev)
-            elif user_role == "Teacher":
-                if user_section == "Faculty" or target == "All" or target == user_section:
-                    visible_events.append(ev)
-            else:
-                visible_events.append(ev)
-
-        if visible_events:
-            df = pd.DataFrame(visible_events)
-            st.dataframe(df[['date', 'title', 'category', 'organizer']].sort_values('date'), use_container_width=True, hide_index=True)
-
-    elif choice == "📥 Inbox":
-        st.header("My Active Tasks")
-        user_bookmarks = st.session_state.bookmarks.get(current_user, [])
-        bookmarked = [e for e in st.session_state.events if e['id'] in user_bookmarks]
-        
-        if not bookmarked:
-            st.info("No active tasks.")
-        else:
-            for ev in bookmarked:
-                with st.expander(f"📌 {ev['title']} - Due: {ev['date']}"):
-                    st.write(f"**Instructions:** {ev['description']}")
-                    if st.button("Unregister / Leave", key=f"rem_{ev['id']}"):
-                        st.session_state.bookmarks[current_user].remove(ev['id'])
-                        st.rerun()
-
-    elif choice == "📚 Courses":
-        # Show courses based on the user's specific section
-        display_section = user_section
-        
-        # Admin or General Faculty see everything
-        if user_role == "Admin" or (user_role == "Teacher" and user_section == "Faculty"):
-            st.header("📚 Master Course Catalog")
-            for section, info in st.session_state.course_catalog.items():
-                st.subheader(f"{section} Department")
-                st.info(info)
-                # Edit interface for Admin/Faculty Teachers
-                with st.expander(f"⚙️ Edit {section} Course List"):
-                    new_val = st.text_area(f"Update {section} courses:", value=info, key=f"edit_{section}")
-                    if st.button(f"Save {section} Changes", key=f"save_{section}"):
-                        st.session_state.course_catalog[section] = new_val
-                        st.success("Changes saved!")
-                        st.rerun()
-        
-        # Specific Section Users (Student or Dept-specific Teacher)
-        elif display_section in st.session_state.course_catalog:
-            st.header(f"📚 {display_section} Courses")
-            current_info = st.session_state.course_catalog[display_section]
-            st.write(f"**Current Track:** {current_info}")
-            
-            # If it's a teacher in a specific department, allow editing their specific department
-            if user_role == "Teacher":
-                st.markdown("---")
-                with st.expander(f"⚙️ Edit {display_section} Department Courses"):
-                    new_val = st.text_area("Update course information:", value=current_info)
-                    if st.button("Save Department Updates"):
-                        st.session_state.course_catalog[display_section] = new_val
-                        st.success("Department info updated!")
-                        st.rerun()
-        else:
-            st.write("Please select a course track from your advisor.")
+    else:
+        st.info(f"Viewing {st.session_state.active_tab} - Content coming soon.")
