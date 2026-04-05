@@ -95,6 +95,12 @@ st.markdown("""
         background-color: #ff4b4b !important;
         color: white !important;
     }
+    
+    /* Blue button style for editing */
+    .edit-btn > div > button {
+        background-color: #007bff !important;
+        color: white !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -128,6 +134,9 @@ if 'events' not in st.session_state:
 if 'bookmarks' not in st.session_state:
     st.session_state.bookmarks = []
 
+if 'editing_event_id' not in st.session_state:
+    st.session_state.editing_event_id = None
+
 # --- APP LOGIC ---
 
 def add_event(title, edate, etime, loc, cat, org, desc):
@@ -143,6 +152,22 @@ def add_event(title, edate, etime, loc, cat, org, desc):
         "description": desc,
         "attendees": 0
     })
+
+def update_event(event_id, title, edate, etime, loc, cat, org, desc):
+    for i, ev in enumerate(st.session_state.events):
+        if ev['id'] == event_id:
+            st.session_state.events[i] = {
+                "id": event_id,
+                "title": title,
+                "date": edate,
+                "time": etime.strftime("%H:%M") if hasattr(etime, 'strftime') else etime,
+                "location": loc,
+                "category": cat,
+                "organizer": org,
+                "description": desc,
+                "attendees": ev.get('attendees', 0)
+            }
+            break
 
 # --- UI LAYOUT ---
 
@@ -176,7 +201,7 @@ if choice == "📡 Event Feed":
                 <div class="event-card">
                     <span class="category-tag">{ev['category']}</span>
                     <h3>{ev['title']}</h3>
-                    <p>📅 <b>Date:</b> {ev['date'].strftime('%B %d, %Y')} &nbsp;&nbsp; | &nbsp;&nbsp; ⏰ <b>Time:</b> {ev['time']}</p>
+                    <p>📅 <b>Date:</b> {ev['date'].strftime('%B %d, %Y') if isinstance(ev['date'], (date, datetime)) else ev['date']} &nbsp;&nbsp; | &nbsp;&nbsp; ⏰ <b>Time:</b> {ev['time']}</p>
                     <p>📍 <b>Location:</b> {ev['location']}</p>
                     <p>👤 <b>Organizer:</b> {ev['organizer']}</p>
                     <p style="margin-top:10px; font-style: italic;">{ev['description']}</p>
@@ -184,7 +209,7 @@ if choice == "📡 Event Feed":
                 """, unsafe_allow_html=True)
                 
                 # Action Buttons
-                c1, c2 = st.columns([1, 5])
+                c1, c2, c3 = st.columns([1, 1, 4])
                 with c1:
                     is_bookmarked = ev['id'] in st.session_state.bookmarks
                     if is_bookmarked:
@@ -199,6 +224,17 @@ if choice == "📡 Event Feed":
                             st.session_state.bookmarks.append(ev['id'])
                             st.toast(f"Joined {ev['title']}!")
                             st.rerun()
+                
+                with c2:
+                    st.markdown('<div class="edit-btn">', unsafe_allow_html=True)
+                    if st.button("Edit Event", key=f"edit_feed_{ev['id']}"):
+                        st.session_state.editing_event_id = ev['id']
+                        st.toast(f"Editing {ev['title']}...")
+                        # We don't rerun immediately to allow logic to flow, 
+                        # but normally we want the radio to switch
+                        # For simplicity, we'll tell the user to go to Announce tab
+                        st.info("Switch to 'Announce Event' tab to edit.")
+                    st.markdown('</div>', unsafe_allow_html=True)
 
 # --- PAGE: CALENDAR VIEW ---
 elif choice == "🗓️ Calendar View":
@@ -219,29 +255,56 @@ elif choice == "🗓️ Calendar View":
 
 # --- PAGE: ANNOUNCE EVENT ---
 elif choice == "➕ Announce Event":
-    st.header("Post a New Event")
-    st.write("Fill out the details below to share your event with the campus.")
+    # Check if we are editing an existing event
+    edit_id = st.session_state.editing_event_id
+    edit_data = next((e for e in st.session_state.events if e['id'] == edit_id), None) if edit_id else None
     
-    with st.form("event_form", clear_on_submit=True):
-        title = st.text_input("Event Title*")
+    if edit_data:
+        st.header(f"✏️ Edit: {edit_data['title']}")
+        if st.button("Cancel Editing"):
+            st.session_state.editing_event_id = None
+            st.rerun()
+    else:
+        st.header("Post a New Event")
+        st.write("Fill out the details below to share your event with the campus.")
+    
+    with st.form("event_form", clear_on_submit=True if not edit_data else False):
+        title = st.text_input("Event Title*", value=edit_data['title'] if edit_data else "")
         col1, col2 = st.columns(2)
         with col1:
-            edate = st.date_input("Date", min_value=date.today())
+            # Handle date conversion for the widget
+            default_date = edit_data['date'] if edit_data else date.today()
+            if isinstance(default_date, str):
+                default_date = datetime.strptime(default_date, '%Y-%m-%d').date()
+            edate = st.date_input("Date", value=default_date)
         with col2:
-            etime = st.time_input("Time")
+            # Handle time conversion for the widget
+            default_time = datetime.strptime(edit_data['time'], "%H:%M").time() if edit_data else datetime.now().time()
+            etime = st.time_input("Time", value=default_time)
         
-        loc = st.text_input("Location (Building/Room)")
-        cat = st.selectbox("Category", ["Workshop", "Social", "Sports", "Academic"])
-        org = st.text_input("Club/Organizer Name*")
-        desc = st.text_area("Event Description")
+        loc = st.text_input("Location (Building/Room)", value=edit_data['location'] if edit_data else "")
         
-        submitted = st.form_submit_button("Post to Hub 🚀")
+        categories = ["Workshop", "Social", "Sports", "Academic"]
+        cat_index = categories.index(edit_data['category']) if edit_data and edit_data['category'] in categories else 0
+        cat = st.selectbox("Category", categories, index=cat_index)
+        
+        org = st.text_input("Club/Organizer Name*", value=edit_data['organizer'] if edit_data else "")
+        desc = st.text_area("Event Description", value=edit_data['description'] if edit_data else "")
+        
+        btn_label = "Update Event Details 🔄" if edit_data else "Post to Hub 🚀"
+        submitted = st.form_submit_button(btn_label)
         
         if submitted:
             if title and org:
-                add_event(title, edate, etime, loc, cat, org, desc)
-                st.success(f"Successfully posted '{title}'!")
-                st.balloons()
+                if edit_data:
+                    update_event(edit_id, title, edate, etime, loc, cat, org, desc)
+                    st.session_state.editing_event_id = None # Clear edit state
+                    st.success(f"Successfully updated '{title}'!")
+                    st.rerun()
+                else:
+                    add_event(title, edate, etime, loc, cat, org, desc)
+                    st.success(f"Successfully posted '{title}'!")
+                    st.balloons()
             else:
                 st.error("Please provide both an Event Title and an Organizer name.")
 
@@ -275,4 +338,4 @@ elif choice == "🔖 My Bookmarks":
 
 # --- FOOTER ---
 st.sidebar.markdown("---")
-st.sidebar.caption("Campus Hub v1.3 | Event Management Update")
+st.sidebar.caption("Campus Hub v1.4 | Event Editor Update")
