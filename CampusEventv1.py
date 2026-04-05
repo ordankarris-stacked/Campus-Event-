@@ -83,6 +83,7 @@ st.markdown("""
         color: #000000;
         font-weight: bold;
         border: none;
+        width: 100%;
     }
     
     .stButton>button:hover {
@@ -91,13 +92,13 @@ st.markdown("""
     }
 
     /* Red button style for quitting */
-    .quit-btn > div > button {
+    div[data-testid="stVerticalBlock"] > div.quit-btn > div > button {
         background-color: #ff4b4b !important;
         color: white !important;
     }
     
     /* Blue button style for editing */
-    .edit-btn > div > button {
+    div[data-testid="stVerticalBlock"] > div.edit-btn > div > button {
         background-color: #007bff !important;
         color: white !important;
     }
@@ -208,8 +209,9 @@ if choice == "📡 Event Feed":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Action Buttons
-                c1, c2, c3 = st.columns([1, 1, 4])
+                # Grouped Action Buttons
+                c1, c2, spacer = st.columns([1.2, 1.2, 4])
+                
                 with c1:
                     is_bookmarked = ev['id'] in st.session_state.bookmarks
                     if is_bookmarked:
@@ -227,12 +229,9 @@ if choice == "📡 Event Feed":
                 
                 with c2:
                     st.markdown('<div class="edit-btn">', unsafe_allow_html=True)
-                    if st.button("Edit Event", key=f"edit_feed_{ev['id']}"):
+                    if st.button("Edit Details", key=f"edit_feed_{ev['id']}"):
                         st.session_state.editing_event_id = ev['id']
                         st.toast(f"Editing {ev['title']}...")
-                        # We don't rerun immediately to allow logic to flow, 
-                        # but normally we want the radio to switch
-                        # For simplicity, we'll tell the user to go to Announce tab
                         st.info("Switch to 'Announce Event' tab to edit.")
                     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -338,4 +337,4 @@ elif choice == "🔖 My Bookmarks":
 
 # --- FOOTER ---
 st.sidebar.markdown("---")
-st.sidebar.caption("Campus Hub v1.4 | Event Editor Update")
+st.sidebar.caption("Campus Hub v1.5 | Layout Optimization")
