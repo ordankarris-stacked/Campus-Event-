@@ -159,10 +159,13 @@ st.markdown("""
 
 # --- DATA PERSISTENCE ---
 if 'users' not in st.session_state:
-    # Pre-configured student accounts with their respective sections and passwords
+    # Pre-configured student and teacher accounts
     st.session_state.users = {
         "admin": {"password": "password123", "role": "Admin", "section": "Faculty"},
         "teacher_jane": {"password": "teach", "role": "Teacher", "section": "Faculty"},
+        "teacherA": {"password": "pass", "role": "Teacher", "section": "Business"},
+        "teacherB": {"password": "pass", "role": "Teacher", "section": "Computer"},
+        "teacherC": {"password": "pass", "role": "Teacher", "section": "Law"},
         "studentA": {"password": "pass", "role": "Student", "section": "Business"},
         "studentB": {"password": "pass", "role": "Student", "section": "Computer"},
         "studentC": {"password": "pass", "role": "Student", "section": "Law"},
@@ -182,7 +185,7 @@ if 'events' not in st.session_state:
             "time": "14:00",
             "location": "Online / Canvas",
             "category": "Quiz",
-            "organizer": "teacher_jane",
+            "organizer": "teacherA",
             "description": "Weekly quiz on supply and demand.",
             "type": "Task",
             "target_section": "Business"
@@ -194,7 +197,7 @@ if 'events' not in st.session_state:
             "time": "23:59",
             "location": "Canvas Submission",
             "category": "Assignment",
-            "organizer": "teacher_jane",
+            "organizer": "teacherB",
             "description": "Submit your code for the calculator project.",
             "type": "Task",
             "target_section": "Computer"
@@ -206,7 +209,7 @@ if 'events' not in st.session_state:
             "time": "12:00",
             "location": "Lecture Hall B",
             "category": "Task",
-            "organizer": "teacher_jane",
+            "organizer": "teacherC",
             "description": "Analyze the tort liability document provided in class.",
             "type": "Task",
             "target_section": "Law"
@@ -262,9 +265,16 @@ def show_login_page():
             with st.form("register_form"):
                 new_user = st.text_input("Choose Username")
                 new_pass = st.text_input("Choose Password", type="password")
-                role = st.selectbox("I am a...", ["Student", "Teacher"])
-                # New section selection for registration
-                section = st.selectbox("Section", ["Business", "Computer", "Law"]) if role == "Student" else "Faculty"
+                role = st.selectbox("I am a...", ["Student", "Teacher", "Admin"])
+                
+                # Dynamic Section Selection: Only students are forced to pick a major
+                if role == "Student":
+                    section = st.selectbox("Academic Section (Major)", ["Business", "Computer", "Law"])
+                elif role == "Teacher":
+                    section = st.selectbox("Department", ["Faculty", "Business", "Computer", "Law"])
+                else:
+                    section = "Faculty" # Admins are always Faculty
+                    
                 reg_submit = st.form_submit_button("Create Account", use_container_width=True)
                 
                 if reg_submit:
@@ -275,7 +285,7 @@ def show_login_page():
                     else:
                         st.session_state.users[new_user] = {"password": new_pass, "role": role, "section": section}
                         st.session_state.bookmarks[new_user] = []
-                        st.success(f"Account created in {section} section! You can now login.")
+                        st.success(f"Account created as {role}! You can now login.")
 
 # --- MAIN APP LOGIC ---
 def add_event(title, edate, etime, loc, cat, org, desc, target="All", etype="Task"):
@@ -312,7 +322,7 @@ else:
                 <div style="font-size: 10px; color: #aaa;">{current_user}</div>
                 <div style="display: flex; justify-content: center; gap: 5px; align-items: center;">
                     <span class="role-badge {badge_class}">{user_role}</span>
-                    {f'<span class="section-badge {section_class}">{user_section}</span>' if user_role == "Student" else ''}
+                    {f'<span class="section-badge {section_class}">{user_section}</span>' if user_role != "Admin" else ''}
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -360,8 +370,8 @@ else:
             st.subheader("Account Details")
             st.write(f"**Username:** {current_user}")
             st.write(f"**Role:** {user_role}")
-            if user_role == "Student":
-                st.write(f"**Academic Section:** {user_section}")
+            if user_role != "Admin":
+                st.write(f"**Assigned Section:** {user_section}")
             
             badge_class = f"badge-{user_role.lower()}"
             st.markdown(f"**Status:** <span class='role-badge {badge_class}'>Active {user_role}</span>", unsafe_allow_html=True)
@@ -370,7 +380,8 @@ else:
             st.info(f"You are currently recognized as a member of the **{user_section}** department. Your access level is set to **{user_role}**.")
 
     elif choice == "📊 Dashboard":
-        st.markdown(f'<h1 class="main-title">🎓 {user_section} Dashboard</h1>', unsafe_allow_html=True)
+        header_text = f"🎓 {user_section} Dashboard" if user_role != "Admin" else "🎓 Master Admin Dashboard"
+        st.markdown(f'<h1 class="main-title">{header_text}</h1>', unsafe_allow_html=True)
         col1, col2 = st.columns([2, 1])
         with col1:
             search = st.text_input("🔍 Search tasks/events...", "")
@@ -385,8 +396,12 @@ else:
             if user_role == "Student":
                 if target == "All" or target == user_section:
                     visible_events.append(ev)
+            # Teachers only see 'All' or their own specific section (if they aren't 'Faculty')
+            elif user_role == "Teacher":
+                if user_section == "Faculty" or target == "All" or target == user_section:
+                    visible_events.append(ev)
             else:
-                # Teachers/Admins see everything
+                # Admins see everything
                 visible_events.append(ev)
 
         for ev in reversed(visible_events):
@@ -448,6 +463,9 @@ else:
             if user_role == "Student":
                 if target == "All" or target == user_section:
                     visible_events.append(ev)
+            elif user_role == "Teacher":
+                if user_section == "Faculty" or target == "All" or target == user_section:
+                    visible_events.append(ev)
             else:
                 visible_events.append(ev)
 
@@ -471,12 +489,14 @@ else:
                         st.rerun()
 
     elif choice == "📚 Courses":
-        st.header(f"Courses for {user_section}")
-        if user_section == "Business":
+        # Show courses based on the user's specific section
+        display_section = user_section
+        st.header(f"Courses for {display_section}")
+        if display_section == "Business":
             st.write("Current: Econ 101, Marketing, Finance Basics.")
-        elif user_section == "Computer":
+        elif display_section == "Computer":
             st.write("Current: Python Basics, Data Structures, Web Dev.")
-        elif user_section == "Law":
+        elif display_section == "Law":
             st.write("Current: Civil Law, Criminal Justice, Ethics.")
         else:
-            st.write("Select a course track from your advisor.")
+            st.write("You are logged in as Faculty/Admin. You can view all course materials in the Master Catalog.")
