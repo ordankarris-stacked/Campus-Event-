@@ -149,7 +149,12 @@ if 'editing_event_id' not in st.session_state:
 # --- APP LOGIC ---
 
 def add_event(title, edate, etime, loc, cat, org, desc):
-    new_id = len(st.session_state.events) + 1
+    # Ensure ID is unique by finding current max ID
+    if st.session_state.events:
+        new_id = max(e['id'] for e in st.session_state.events) + 1
+    else:
+        new_id = 1
+        
     st.session_state.events.append({
         "id": new_id,
         "title": title,
@@ -201,7 +206,8 @@ if choice == "📡 Event Feed":
 
     st.markdown("---")
 
-    for ev in st.session_state.events:
+    # Display in reverse chronological order so new events appear near top
+    for ev in reversed(st.session_state.events):
         # Apply filters
         if search.lower() in ev['title'].lower() and (cat_filter == "All" or ev['category'] == cat_filter):
             with st.container():
@@ -218,7 +224,6 @@ if choice == "📡 Event Feed":
                 """, unsafe_allow_html=True)
                 
                 # Aligned Action Buttons
-                # Using 4 columns: Join/Quit, Edit, and then spacers
                 c1, c2, c3, c4 = st.columns([1.5, 1.5, 2, 2])
                 
                 with c1:
@@ -280,13 +285,11 @@ elif choice == "➕ Announce Event":
         title = st.text_input("Event Title*", value=edit_data['title'] if edit_data else "")
         col1, col2 = st.columns(2)
         with col1:
-            # Handle date conversion for the widget
             default_date = edit_data['date'] if edit_data else date.today()
             if isinstance(default_date, str):
                 default_date = datetime.strptime(default_date, '%Y-%m-%d').date()
             edate = st.date_input("Date", value=default_date)
         with col2:
-            # Handle time conversion for the widget
             default_time = datetime.strptime(edit_data['time'], "%H:%M").time() if edit_data else datetime.now().time()
             etime = st.time_input("Time", value=default_time)
         
@@ -306,12 +309,12 @@ elif choice == "➕ Announce Event":
             if title and org:
                 if edit_data:
                     update_event(edit_id, title, edate, etime, loc, cat, org, desc)
-                    st.session_state.editing_event_id = None # Clear edit state
+                    st.session_state.editing_event_id = None 
                     st.success(f"Successfully updated '{title}'!")
                     st.rerun()
                 else:
                     add_event(title, edate, etime, loc, cat, org, desc)
-                    st.success(f"Successfully posted '{title}'!")
+                    st.success(f"Successfully posted '{title}'! It is now saved in the Event Feed.")
                     st.balloons()
             else:
                 st.error("Please provide both an Event Title and an Organizer name.")
@@ -346,4 +349,4 @@ elif choice == "🔖 My Bookmarks":
 
 # --- FOOTER ---
 st.sidebar.markdown("---")
-st.sidebar.caption("Campus Hub v1.5 | Layout Optimization")
+st.sidebar.caption("Campus Hub v1.6 | Persistence Update")
