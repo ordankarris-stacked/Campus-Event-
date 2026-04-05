@@ -6,7 +6,7 @@ import calendar
 # --- CONFIGURATION & STYLING ---
 st.set_page_config(page_title="Campus Event Hub", page_icon="🎓", layout="wide")
 
-# Modern Dark Theme CSS for high visibility
+# Modern Dark Theme CSS with Canvas LMS Style Navigation
 st.markdown("""
     <style>
     /* Force a dark background for the entire app */
@@ -15,25 +15,68 @@ st.markdown("""
         color: #ffffff;
     }
     
-    /* Main titles and headers visibility */
+    /* Sidebar styling to match the provided photo (Canvas LMS style) */
+    [data-testid="stSidebar"] {
+        background-color: #000000 !important;
+        min-width: 100px !important;
+        max-width: 120px !important;
+        border-right: 1px solid #30363d;
+    }
+
+    /* Red top bar accent */
+    [data-testid="stSidebar"]::before {
+        content: "";
+        display: block;
+        height: 50px;
+        background-color: #E03E2D; /* Canvas Red */
+        margin-bottom: 10px;
+    }
+
+    /* Custom Navigation Item Styling */
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 15px 5px;
+        color: #ffffff;
+        text-decoration: none;
+        transition: background 0.3s;
+        cursor: pointer;
+        text-align: center;
+    }
+    
+    .nav-item:hover {
+        background-color: #2d2d2d;
+    }
+
+    .nav-item-active {
+        background-color: #ffffff !important;
+        color: #E03E2D !important;
+    }
+
+    .nav-icon {
+        font-size: 24px;
+        margin-bottom: 5px;
+    }
+
+    .nav-text {
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    /* Standard high visibility colors */
     h1, h2, h3, .stMarkdown p {
         color: #ffffff !important;
     }
     
-    /* Highlighted Titles */
     .main-title {
-        color: #ffd700 !important; /* Gold color for high contrast */
+        color: #ffd700 !important; 
         font-weight: 800;
-        font-size: 3rem;
+        font-size: 2.5rem;
     }
 
-    .sub-title {
-        color: #e0e0e0 !important;
-        font-size: 1.2rem;
-        margin-bottom: 2rem;
-    }
-    
-    /* Event Card Styling - Dark card with light text */
+    /* Event Card Styling */
     .event-card { 
         padding: 25px; 
         border-radius: 12px; 
@@ -41,79 +84,27 @@ st.markdown("""
         border-left: 5px solid #ffd700;
         background-color: #1c2128;
         margin-bottom: 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
     
-    /* Text details inside card */
     .event-card h3 {
         color: #ffd700 !important;
-        margin-top: 0px;
-        font-weight: 700;
     }
     
-    .event-card p {
-        color: #ced4da !important;
-        margin-bottom: 8px;
-        line-height: 1.5;
-    }
-    
-    /* Category Tag */
-    .category-tag {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.75em;
-        font-weight: 600;
-        background-color: #ffd700;
-        color: #000000;
-        margin-bottom: 10px;
-        text-transform: uppercase;
-    }
-    
-    /* Form and Input styling to ensure visibility */
-    .stTextInput input, .stSelectbox div, .stTextArea textarea {
-        background-color: #262730 !important;
-        color: white !important;
-        border: 1px solid #4b4b4b !important;
-    }
-
     /* Button styling */
     .stButton>button {
         background-color: #ffd700;
         color: #000000;
         font-weight: bold;
-        border: none;
-        width: 100%;
-        height: 45px; /* Consistent height for alignment */
-    }
-    
-    .stButton>button:hover {
-        background-color: #ffc107;
-        color: #000000;
     }
 
-    /* Red button style for quitting */
-    div.quit-btn > div > button {
-        background-color: #ff4b4b !important;
-        color: white !important;
-    }
-    
-    /* Blue button style for editing */
-    div.edit-btn > div > button {
-        background-color: #007bff !important;
-        color: white !important;
-    }
-
-    /* Container to help vertical alignment within columns */
-    .button-container {
-        display: flex;
-        align-items: center;
-        height: 100%;
+    /* Hide default Streamlit sidebar radio selector but keep functionality */
+    div[data-testid="stSidebarUserContent"] .stRadio {
+        display: none;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- DATA PERSISTENCE (In-Memory for Demo) ---
+# --- DATA PERSISTENCE ---
 if 'events' not in st.session_state:
     st.session_state.events = [
         {
@@ -143,210 +134,115 @@ if 'events' not in st.session_state:
 if 'bookmarks' not in st.session_state:
     st.session_state.bookmarks = []
 
+if 'active_tab' not in st.session_state:
+    st.session_state.active_tab = "📡 Feed"
+
 if 'editing_event_id' not in st.session_state:
     st.session_state.editing_event_id = None
 
 # --- APP LOGIC ---
 
 def add_event(title, edate, etime, loc, cat, org, desc):
-    # Ensure ID is unique by finding current max ID
     if st.session_state.events:
         new_id = max(e['id'] for e in st.session_state.events) + 1
     else:
         new_id = 1
-        
     st.session_state.events.append({
-        "id": new_id,
-        "title": title,
-        "date": edate,
-        "time": etime.strftime("%H:%M"),
-        "location": loc,
-        "category": cat,
-        "organizer": org,
-        "description": desc,
-        "attendees": 0
+        "id": new_id, "title": title, "date": edate, "time": etime.strftime("%H:%M"),
+        "location": loc, "category": cat, "organizer": org, "description": desc, "attendees": 0
     })
 
 def update_event(event_id, title, edate, etime, loc, cat, org, desc):
     for i, ev in enumerate(st.session_state.events):
         if ev['id'] == event_id:
             st.session_state.events[i] = {
-                "id": event_id,
-                "title": title,
-                "date": edate,
+                "id": event_id, "title": title, "date": edate,
                 "time": etime.strftime("%H:%M") if hasattr(etime, 'strftime') else etime,
-                "location": loc,
-                "category": cat,
-                "organizer": org,
-                "description": desc,
+                "location": loc, "category": cat, "organizer": org, "description": desc,
                 "attendees": ev.get('attendees', 0)
             }
             break
 
-# --- UI LAYOUT ---
+# --- NAVIGATION SIDEBAR (Canvas LMS Style) ---
+with st.sidebar:
+    # Account Icon (Visual only)
+    st.markdown("""
+        <div class="nav-item">
+            <div class="nav-icon" style="background: #555; border-radius: 50%; width: 40px; height: 40px; line-height: 40px; margin: 0 auto 5px auto;">👤</div>
+            <div class="nav-text" style="color: #00acee;">Account</div>
+        </div>
+    """, unsafe_allow_html=True)
 
-st.markdown('<h1 class="main-title">🎓 Campus Event Hub</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Connect, Discover, and Engage with your University Community.</p>', unsafe_allow_html=True)
+    nav_items = [
+        {"id": "📡 Feed", "label": "Feed", "icon": "📡"},
+        {"id": "🗓️ Calendar", "label": "Calendar", "icon": "📅"},
+        {"id": "➕ Post", "label": "Announce", "icon": "📥"},
+        {"id": "🔖 Saved", "label": "Inbox", "icon": "🔖"},
+        {"id": "❓ Help", "label": "Help", "icon": "❓"}
+    ]
 
-# Navigation Sidebar
-st.sidebar.title("Navigation")
-menu = ["📡 Event Feed", "🗓️ Calendar View", "➕ Announce Event", "🔖 My Bookmarks"]
-choice = st.sidebar.radio("Go to", menu)
+    for item in nav_items:
+        is_active = st.session_state.active_tab == item['id']
+        active_class = "nav-item-active" if is_active else ""
+        
+        # Use a hidden button or link behavior to change state
+        if st.button(f"{item['icon']}\n{item['label']}", key=f"nav_{item['id']}", use_container_width=True):
+            st.session_state.active_tab = item['id']
+            st.rerun()
 
-# --- PAGE: EVENT FEED ---
-if choice == "📡 Event Feed":
-    st.header("Upcoming Activities")
-    
-    # Filters
+# --- MAIN CONTENT ---
+choice = st.session_state.active_tab
+
+if choice == "📡 Feed":
+    st.markdown('<h1 class="main-title">🎓 Event Feed</h1>', unsafe_allow_html=True)
     col1, col2 = st.columns([2, 1])
     with col1:
-        search = st.text_input("🔍 Search events by name...", "")
+        search = st.text_input("🔍 Search events...", "")
     with col2:
-        cat_filter = st.selectbox("Category Filter", ["All", "Workshop", "Social", "Sports", "Academic"])
+        cat_filter = st.selectbox("Category", ["All", "Workshop", "Social", "Sports", "Academic"])
 
-    st.markdown("---")
-
-    # Display in reverse chronological order so new events appear near top
     for ev in reversed(st.session_state.events):
-        # Apply filters
         if search.lower() in ev['title'].lower() and (cat_filter == "All" or ev['category'] == cat_filter):
-            with st.container():
-                # Card HTML
-                st.markdown(f"""
-                <div class="event-card">
-                    <span class="category-tag">{ev['category']}</span>
-                    <h3>{ev['title']}</h3>
-                    <p>📅 <b>Date:</b> {ev['date'].strftime('%B %d, %Y') if isinstance(ev['date'], (date, datetime)) else ev['date']} &nbsp;&nbsp; | &nbsp;&nbsp; ⏰ <b>Time:</b> {ev['time']}</p>
-                    <p>📍 <b>Location:</b> {ev['location']}</p>
-                    <p>👤 <b>Organizer:</b> {ev['organizer']}</p>
-                    <p style="margin-top:10px; font-style: italic;">{ev['description']}</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Aligned Action Buttons
-                c1, c2, c3, c4 = st.columns([1.5, 1.5, 2, 2])
-                
-                with c1:
-                    is_bookmarked = ev['id'] in st.session_state.bookmarks
-                    if is_bookmarked:
-                        st.markdown('<div class="quit-btn">', unsafe_allow_html=True)
-                        if st.button("Quit Event", key=f"quit_feed_{ev['id']}"):
-                            st.session_state.bookmarks.remove(ev['id'])
-                            st.toast(f"You have left {ev['title']}")
-                            st.rerun()
-                        st.markdown('</div>', unsafe_allow_html=True)
-                    else:
-                        if st.button("Join / Save", key=f"join_feed_{ev['id']}"):
-                            st.session_state.bookmarks.append(ev['id'])
-                            st.toast(f"Joined {ev['title']}!")
-                            st.rerun()
-                
-                with c2:
-                    st.markdown('<div class="edit-btn">', unsafe_allow_html=True)
-                    if st.button("Edit Details", key=f"edit_feed_{ev['id']}"):
-                        st.session_state.editing_event_id = ev['id']
-                        st.toast(f"Editing {ev['title']}...")
-                        st.info("Switch to 'Announce Event' tab to edit.")
-                    st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="event-card">
+                <h3>{ev['title']}</h3>
+                <p>📅 {ev['date']} | ⏰ {ev['time']} | 📍 {ev['location']}</p>
+                <p><i>{ev['description']}</i></p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("Join / Save", key=f"join_{ev['id']}"):
+                st.session_state.bookmarks.append(ev['id'])
+                st.toast("Saved!")
 
-# --- PAGE: CALENDAR VIEW ---
-elif choice == "🗓️ Calendar View":
+elif choice == "🗓️ Calendar":
     st.header("Event Schedule")
-    
     if st.session_state.events:
         df = pd.DataFrame(st.session_state.events)
-        df['date'] = pd.to_datetime(df['date'])
-        
-        st.write("Chronological list of upcoming campus activities:")
-        st.dataframe(
-            df[['date', 'title', 'location', 'category', 'organizer']].sort_values('date'), 
-            use_container_width=True,
-            hide_index=True
-        )
-    else:
-        st.info("No events scheduled yet.")
+        st.dataframe(df[['date', 'title', 'location']], use_container_width=True, hide_index=True)
 
-# --- PAGE: ANNOUNCE EVENT ---
-elif choice == "➕ Announce Event":
-    # Check if we are editing an existing event
-    edit_id = st.session_state.editing_event_id
-    edit_data = next((e for e in st.session_state.events if e['id'] == edit_id), None) if edit_id else None
-    
-    if edit_data:
-        st.header(f"✏️ Edit: {edit_data['title']}")
-        if st.button("Cancel Editing"):
-            st.session_state.editing_event_id = None
-            st.rerun()
-    else:
-        st.header("Post a New Event")
-        st.write("Fill out the details below to share your event with the campus.")
-    
-    with st.form("event_form", clear_on_submit=True if not edit_data else False):
-        title = st.text_input("Event Title*", value=edit_data['title'] if edit_data else "")
+elif choice == "➕ Post":
+    st.header("Post a New Event")
+    with st.form("event_form"):
+        title = st.text_input("Event Title*")
         col1, col2 = st.columns(2)
-        with col1:
-            default_date = edit_data['date'] if edit_data else date.today()
-            if isinstance(default_date, str):
-                default_date = datetime.strptime(default_date, '%Y-%m-%d').date()
-            edate = st.date_input("Date", value=default_date)
-        with col2:
-            default_time = datetime.strptime(edit_data['time'], "%H:%M").time() if edit_data else datetime.now().time()
-            etime = st.time_input("Time", value=default_time)
-        
-        loc = st.text_input("Location (Building/Room)", value=edit_data['location'] if edit_data else "")
-        
-        categories = ["Workshop", "Social", "Sports", "Academic"]
-        cat_index = categories.index(edit_data['category']) if edit_data and edit_data['category'] in categories else 0
-        cat = st.selectbox("Category", categories, index=cat_index)
-        
-        org = st.text_input("Club/Organizer Name*", value=edit_data['organizer'] if edit_data else "")
-        desc = st.text_area("Event Description", value=edit_data['description'] if edit_data else "")
-        
-        btn_label = "Update Event Details 🔄" if edit_data else "Post to Hub 🚀"
-        submitted = st.form_submit_button(btn_label)
-        
-        if submitted:
+        with col1: edate = st.date_input("Date", value=date.today())
+        with col2: etime = st.time_input("Time")
+        loc = st.text_input("Location")
+        cat = st.selectbox("Category", ["Workshop", "Social", "Sports", "Academic"])
+        org = st.text_input("Organizer*")
+        desc = st.text_area("Description")
+        if st.form_submit_button("Post to Hub"):
             if title and org:
-                if edit_data:
-                    update_event(edit_id, title, edate, etime, loc, cat, org, desc)
-                    st.session_state.editing_event_id = None 
-                    st.success(f"Successfully updated '{title}'!")
-                    st.rerun()
-                else:
-                    add_event(title, edate, etime, loc, cat, org, desc)
-                    st.success(f"Successfully posted '{title}'! It is now saved in the Event Feed.")
-                    st.balloons()
-            else:
-                st.error("Please provide both an Event Title and an Organizer name.")
+                add_event(title, edate, etime, loc, cat, org, desc)
+                st.success("Event Posted!")
+                st.balloons()
 
-# --- PAGE: MY BOOKMARKS ---
-elif choice == "🔖 My Bookmarks":
+elif choice == "🔖 Saved":
     st.header("Your Saved Events")
-    
-    if not st.session_state.bookmarks:
-        st.info("You haven't bookmarked any events yet.")
-    else:
-        bookmarked_events = [e for e in st.session_state.events if e['id'] in st.session_state.bookmarks]
-        for ev in bookmarked_events:
-            with st.expander(f"📌 {ev['title']} - {ev['date']}"):
-                st.write(f"**Time:** {ev['time']}")
-                st.write(f"**Location:** {ev['location']}")
-                st.write(f"**Category:** {ev['category']}")
-                st.write(f"**Description:** {ev['description']}")
-                
-                # Individual Quit Button within expander
-                st.markdown('<div class="quit-btn">', unsafe_allow_html=True)
-                if st.button(f"Quit {ev['title']}", key=f"quit_bookmark_{ev['id']}"):
-                    st.session_state.bookmarks.remove(ev['id'])
-                    st.toast(f"Removed {ev['title']} from your bookmarks")
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-        
-        st.markdown("---")
-        if st.button("Clear All Bookmarks"):
-            st.session_state.bookmarks = []
-            st.rerun()
+    bookmarked = [e for e in st.session_state.events if e['id'] in st.session_state.bookmarks]
+    for ev in bookmarked:
+        st.write(f"📌 **{ev['title']}** - {ev['date']}")
 
-# --- FOOTER ---
-st.sidebar.markdown("---")
-st.sidebar.caption("Campus Hub v1.6 | Persistence Update")
+elif choice == "❓ Help":
+    st.header("Help & Support")
+    st.write("Need help using the Event Hub? Contact the Student Union or technical support.")
