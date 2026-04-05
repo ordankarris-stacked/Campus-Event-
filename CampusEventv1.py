@@ -114,6 +114,17 @@ st.markdown("""
         color: white;
     }
 
+    /* Auth Box styling */
+    .auth-container {
+        max-width: 400px;
+        margin: auto;
+        padding: 40px;
+        background-color: #1c2128;
+        border-radius: 15px;
+        border: 1px solid #30363d;
+        text-align: center;
+    }
+
     /* Hide default Streamlit sidebar radio selector but keep functionality */
     div[data-testid="stSidebarUserContent"] .stRadio {
         display: none;
@@ -122,6 +133,16 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- DATA PERSISTENCE ---
+# Initialize Users
+if 'users' not in st.session_state:
+    st.session_state.users = {
+        "admin": "password123",
+        "student": "canvas2024"
+    }
+
+if 'logged_in_user' not in st.session_state:
+    st.session_state.logged_in_user = None
+
 if 'events' not in st.session_state:
     st.session_state.events = [
         {
@@ -149,16 +170,50 @@ if 'events' not in st.session_state:
     ]
 
 if 'bookmarks' not in st.session_state:
-    st.session_state.bookmarks = []
+    st.session_state.bookmarks = {} # Store as dict of list {username: [event_ids]}
 
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "📡 Feed"
 
-if 'editing_event_id' not in st.session_state:
-    st.session_state.editing_event_id = None
+# --- AUTHENTICATION UI ---
+def show_login_page():
+    st.markdown('<h1 style="text-align: center; color: #ffd700;">🎓 Campus Hub Login</h1>', unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs(["Login", "Register"])
+    
+    with tab1:
+        with st.form("login_form"):
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Sign In")
+            
+            if submit:
+                if username in st.session_state.users and st.session_state.users[username] == password:
+                    st.session_state.logged_in_user = username
+                    st.success(f"Welcome back, {username}!")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password.")
+    
+    with tab2:
+        with st.form("register_form"):
+            new_user = st.text_input("Choose Username")
+            new_pass = st.text_input("Choose Password", type="password")
+            confirm_pass = st.text_input("Confirm Password", type="password")
+            reg_submit = st.form_submit_button("Create Account")
+            
+            if reg_submit:
+                if not new_user or not new_pass:
+                    st.warning("Please fill in all fields.")
+                elif new_user in st.session_state.users:
+                    st.error("Username already exists.")
+                elif new_pass != confirm_pass:
+                    st.error("Passwords do not match.")
+                else:
+                    st.session_state.users[new_user] = new_pass
+                    st.success("Account created! You can now login.")
 
-# --- APP LOGIC ---
-
+# --- MAIN APP LOGIC ---
 def add_event(title, edate, etime, loc, cat, org, desc):
     if st.session_state.events:
         new_id = max(e['id'] for e in st.session_state.events) + 1
@@ -169,137 +224,131 @@ def add_event(title, edate, etime, loc, cat, org, desc):
         "location": loc, "category": cat, "organizer": org, "description": desc, "attendees": 0
     })
 
-def update_event(event_id, title, edate, etime, loc, cat, org, desc):
-    for i, ev in enumerate(st.session_state.events):
-        if ev['id'] == event_id:
-            st.session_state.events[i] = {
-                "id": event_id, "title": title, "date": edate,
-                "time": etime.strftime("%H:%M") if hasattr(etime, 'strftime') else etime,
-                "location": loc, "category": cat, "organizer": org, "description": desc,
-                "attendees": ev.get('attendees', 0)
-            }
-            break
+# Check if user is logged in
+if st.session_state.logged_in_user is None:
+    show_login_page()
+else:
+    # --- NAVIGATION SIDEBAR ---
+    with st.sidebar:
+        # Account Section
+        st.markdown(f"""
+            <div class="nav-item">
+                <div class="nav-icon" style="background: #555; border-radius: 50%; width: 40px; height: 40px; line-height: 40px; margin: 0 auto 5px auto;">👤</div>
+                <div class="nav-text" style="color: #00acee;">{st.session_state.logged_in_user}</div>
+            </div>
+        """, unsafe_allow_html=True)
 
-# --- NAVIGATION SIDEBAR (Canvas LMS Style) ---
-with st.sidebar:
-    # Account Icon (Visual only)
-    st.markdown("""
-        <div class="nav-item">
-            <div class="nav-icon" style="background: #555; border-radius: 50%; width: 40px; height: 40px; line-height: 40px; margin: 0 auto 5px auto;">👤</div>
-            <div class="nav-text" style="color: #00acee;">Account</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    nav_items = [
-        {"id": "📡 Feed", "label": "Feed", "icon": "📡"},
-        {"id": "🗓️ Calendar", "label": "Calendar", "icon": "📅"},
-        {"id": "➕ Post", "label": "Announce", "icon": "➕"},
-        {"id": "🔖 Saved", "label": "Inbox", "icon": "🔖"},
-        {"id": "❓ Help", "label": "Help", "icon": "❓"}
-    ]
-
-    for item in nav_items:
-        is_active = st.session_state.active_tab == item['id']
-        
-        # We use standard Streamlit buttons styled via CSS to behave like the Nav Items
-        if st.button(f"{item['icon']}\n{item['label']}", key=f"nav_{item['id']}", use_container_width=True):
-            st.session_state.active_tab = item['id']
+        if st.button("Logout", key="logout_btn", use_container_width=True):
+            st.session_state.logged_in_user = None
             st.rerun()
 
-# --- MAIN CONTENT ---
-choice = st.session_state.active_tab
+        st.markdown("---")
 
-if choice == "📡 Feed":
-    st.markdown('<h1 class="main-title">🎓 Event Feed</h1>', unsafe_allow_html=True)
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        search = st.text_input("🔍 Search events...", "")
-    with col2:
-        cat_filter = st.selectbox("Category", ["All", "Workshop", "Social", "Sports", "Academic"])
+        nav_items = [
+            {"id": "📡 Feed", "label": "Feed", "icon": "📡"},
+            {"id": "🗓️ Calendar", "label": "Calendar", "icon": "📅"},
+            {"id": "➕ Post", "label": "Announce", "icon": "➕"},
+            {"id": "🔖 Saved", "label": "Inbox", "icon": "🔖"},
+            {"id": "❓ Help", "label": "Help", "icon": "❓"}
+        ]
 
-    # Show events in reverse chronological order
-    for ev in reversed(st.session_state.events):
-        if search.lower() in ev['title'].lower() and (cat_filter == "All" or ev['category'] == cat_filter):
-            st.markdown(f"""
-            <div class="event-card">
-                <h3>{ev['title']}</h3>
-                <p>📅 {ev['date']} | ⏰ {ev['time']} | 📍 {ev['location']}</p>
-                <p>👤 <b>Organizer:</b> {ev['organizer']}</p>
-                <p><i>{ev['description']}</i></p>
-            </div>
-            """, unsafe_allow_html=True)
+        for item in nav_items:
+            if st.button(f"{item['icon']}\n{item['label']}", key=f"nav_{item['id']}", use_container_width=True):
+                st.session_state.active_tab = item['id']
+                st.rerun()
+
+    # --- MAIN CONTENT ---
+    choice = st.session_state.active_tab
+    current_user = st.session_state.logged_in_user
+    
+    # Initialize user bookmarks if not exists
+    if current_user not in st.session_state.bookmarks:
+        st.session_state.bookmarks[current_user] = []
+
+    if choice == "📡 Feed":
+        st.markdown(f'<h1 class="main-title">🎓 Event Feed</h1>', unsafe_allow_html=True)
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            search = st.text_input("🔍 Search events...", "")
+        with col2:
+            cat_filter = st.selectbox("Category", ["All", "Workshop", "Social", "Sports", "Academic"])
+
+        for ev in reversed(st.session_state.events):
+            if search.lower() in ev['title'].lower() and (cat_filter == "All" or ev['category'] == cat_filter):
+                st.markdown(f"""
+                <div class="event-card">
+                    <h3>{ev['title']}</h3>
+                    <p>📅 {ev['date']} | ⏰ {ev['time']} | 📍 {ev['location']}</p>
+                    <p>👤 <b>Organizer:</b> {ev['organizer']}</p>
+                    <p><i>{ev['description']}</i></p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                c1, c2 = st.columns([1, 4])
+                with c1:
+                    if st.button("Join / Save", key=f"join_{ev['id']}"):
+                        if ev['id'] not in st.session_state.bookmarks[current_user]:
+                            st.session_state.bookmarks[current_user].append(ev['id'])
+                            st.toast(f"Saved {ev['title']}!")
+                        else:
+                            st.toast("Already bookmarked!")
+
+    elif choice == "🗓️ Calendar":
+        st.header("Event Schedule")
+        if st.session_state.events:
+            df = pd.DataFrame(st.session_state.events)
+            df['date'] = pd.to_datetime(df['date'])
+            st.dataframe(
+                df[['date', 'title', 'location', 'category', 'organizer']].sort_values('date'), 
+                use_container_width=True, 
+                hide_index=True
+            )
+        else:
+            st.info("No events scheduled yet.")
+
+    elif choice == "➕ Post":
+        st.header("Post a New Event")
+        with st.form("event_form", clear_on_submit=True):
+            title = st.text_input("Event Title*")
+            col1, col2 = st.columns(2)
+            with col1: edate = st.date_input("Date", value=date.today())
+            with col2: etime = st.time_input("Time")
+            loc = st.text_input("Location")
+            cat = st.selectbox("Category", ["Workshop", "Social", "Sports", "Academic"])
+            org = st.text_input("Organizer (Club/Dept)*", value=current_user)
+            desc = st.text_area("Description")
             
-            # Action buttons for the feed
-            c1, c2 = st.columns([1, 4])
-            with c1:
-                if st.button("Join / Save", key=f"join_{ev['id']}"):
-                    if ev['id'] not in st.session_state.bookmarks:
-                        st.session_state.bookmarks.append(ev['id'])
-                        st.toast(f"Saved {ev['title']}!")
-                    else:
-                        st.toast("Already bookmarked!")
+            if st.form_submit_button("Post to Hub 🚀"):
+                if title and org:
+                    add_event(title, edate, etime, loc, cat, org, desc)
+                    st.success(f"Successfully posted '{title}'!")
+                    st.balloons()
+                else:
+                    st.error("Please provide both an Event Title and an Organizer.")
 
-elif choice == "🗓️ Calendar":
-    st.header("Event Schedule")
-    if st.session_state.events:
-        df = pd.DataFrame(st.session_state.events)
-        df['date'] = pd.to_datetime(df['date'])
-        st.dataframe(
-            df[['date', 'title', 'location', 'category', 'organizer']].sort_values('date'), 
-            use_container_width=True, 
-            hide_index=True
-        )
-    else:
-        st.info("No events scheduled yet.")
-
-elif choice == "➕ Post":
-    st.header("Post a New Event")
-    st.write("Share an activity with the campus community.")
-    with st.form("event_form", clear_on_submit=True):
-        title = st.text_input("Event Title*")
-        col1, col2 = st.columns(2)
-        with col1: 
-            edate = st.date_input("Date", value=date.today())
-        with col2: 
-            etime = st.time_input("Time")
-        loc = st.text_input("Location")
-        cat = st.selectbox("Category", ["Workshop", "Social", "Sports", "Academic"])
-        org = st.text_input("Organizer (Club/Dept)*")
-        desc = st.text_area("Description")
+    elif choice == "🔖 Saved":
+        st.header("Your Saved Events")
+        user_bookmarks = st.session_state.bookmarks[current_user]
+        bookmarked = [e for e in st.session_state.events if e['id'] in user_bookmarks]
         
-        if st.form_submit_button("Post to Hub 🚀"):
-            if title and org:
-                add_event(title, edate, etime, loc, cat, org, desc)
-                st.success(f"Successfully posted '{title}'!")
-                st.balloons()
-            else:
-                st.error("Please provide both an Event Title and an Organizer.")
+        if not bookmarked:
+            st.info("You haven't saved any events yet.")
+        else:
+            for ev in bookmarked:
+                with st.expander(f"📌 {ev['title']} - {ev['date']}"):
+                    st.write(f"**Location:** {ev['location']}")
+                    st.write(f"**Time:** {ev['time']}")
+                    st.write(f"**Description:** {ev['description']}")
+                    if st.button(f"Remove Bookmark", key=f"rem_{ev['id']}"):
+                        st.session_state.bookmarks[current_user].remove(ev['id'])
+                        st.rerun()
 
-elif choice == "🔖 Saved":
-    st.header("Your Saved Events")
-    bookmarked = [e for e in st.session_state.events if e['id'] in st.session_state.bookmarks]
-    
-    if not bookmarked:
-        st.info("You haven't saved any events yet. Check the Feed to find interesting activities!")
-    else:
-        for ev in bookmarked:
-            with st.expander(f"📌 {ev['title']} - {ev['date']}"):
-                st.write(f"**Location:** {ev['location']}")
-                st.write(f"**Time:** {ev['time']}")
-                st.write(f"**Description:** {ev['description']}")
-                if st.button(f"Remove Bookmark", key=f"rem_{ev['id']}"):
-                    st.session_state.bookmarks.remove(ev['id'])
-                    st.rerun()
-
-elif choice == "❓ Help":
-    st.header("Help & Support")
-    st.markdown("""
-    ### Welcome to the Campus Event Hub!
-    
-    - **📡 Feed**: Browse all upcoming events on campus.
-    - **🗓️ Calendar**: See events in a structured list view.
-    - **➕ Post**: Create and share your own events.
-    - **🔖 Saved**: Access events you've joined or saved for later.
-    
-    If you encounter any issues, please contact the student support team.
-    """)
+    elif choice == "❓ Help":
+        st.header("Help & Support")
+        st.markdown(f"Logged in as: **{current_user}**")
+        st.markdown("""
+        ### Quick Guide
+        - Register if you are a new student.
+        - Login to join events or post your own.
+        - Saved events are private to your account.
+        """)
