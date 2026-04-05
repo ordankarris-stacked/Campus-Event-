@@ -153,18 +153,33 @@ if 'users' not in st.session_state:
         "student": {"password": "pass", "role": "Student", "section": "Computer"}
     }
 
-# Course Data representing the screenshot content
+# ORIGINAL COURSE DATA - Restored to website's original sections
 if 'courses' not in st.session_state:
     st.session_state.courses = [
-        {"id": "MENG1111", "name": "ENGLISH I", "code": "MENG1111-114 ENGLISH I", "term": "24/25 - Semester 1", "color": "#435d3f"},
-        {"id": "MATH11", "name": "CALCULUS", "code": "(25/26-S1) CALCULUS - MATH11...", "term": "25/26 - Semester 1", "color": "#913b91"},
-        {"id": "DATASTR", "name": "DATA STRUCTURES", "code": "(25/26-S1) DATA STRUCTURES A...", "term": "25/26 - Semester 1", "color": "#1a734d"},
-        {"id": "INTROTOD", "name": "INTRODUCTION TO DESIGN", "code": "(25/26-S1) INTRODUCTION TO D...", "term": "25/26 - Semester 1", "color": "#4a3e4e"},
-        {"id": "INTROTOP", "name": "INTRODUCTION TO PROGRAMMING", "code": "(25/26-S1) INTRODUCTION TO P...", "term": "25/26 - Semester 1", "color": "#3f4d3f"},
-        {"id": "OPSYS", "name": "OPERATING SYSTEMS", "code": "(25/26-S1) OPERATING SYSTEMS...", "term": "25/26 - Semester 1", "color": "#d93025"},
-        {"id": "PROBSTAT", "name": "PROBABILITY AND STATISTICS", "code": "(25/26-S1) PROBABILITY AND ST...", "term": "25/26 - Semester 1", "color": "#334c4c"},
-        {"id": "ADVPROG", "name": "ADVANCED PROGRAMMING", "code": "ADVANCED PROGRAMMING - C...", "term": "25/26 - Semester 2", "color": "#0063a3"},
-        {"id": "AFFCA", "name": "AFFCA001-001", "code": "AFFCA001-001", "term": "25/26 - Semester 2", "color": "#4a3e4e"},
+        {
+            "id": "BUS101", 
+            "name": "Economics & Marketing", 
+            "code": "BUS-101 Business Fundamentals", 
+            "term": "2024 - Semester 1", 
+            "color": "#4CAF50",
+            "section": "Business"
+        },
+        {
+            "id": "CS101", 
+            "name": "Python & Data Structures", 
+            "code": "CS-101 Computer Science I", 
+            "term": "2024 - Semester 1", 
+            "color": "#2196F3",
+            "section": "Computer"
+        },
+        {
+            "id": "LAW101", 
+            "name": "Civil Law & Ethics", 
+            "code": "LAW-101 Introduction to Law", 
+            "term": "2024 - Semester 1", 
+            "color": "#9C27B0",
+            "section": "Law"
+        }
     ]
 
 if 'logged_in_user' not in st.session_state:
@@ -187,7 +202,6 @@ if st.session_state.logged_in_user is None:
             if st.form_submit_button("Login", use_container_width=True):
                 if u in st.session_state.users and st.session_state.users[u]["password"] == p:
                     st.session_state.logged_in_user = u
-                    # FIX: Ensure user key exists in bookmarks to prevent TypeError
                     if u not in st.session_state.bookmarks:
                         st.session_state.bookmarks[u] = []
                     st.rerun()
@@ -196,7 +210,6 @@ else:
     current_user = st.session_state.logged_in_user
     user_data = st.session_state.users[current_user]
     
-    # Global fix check
     if current_user not in st.session_state.bookmarks:
         st.session_state.bookmarks[current_user] = []
 
@@ -219,7 +232,7 @@ else:
     if st.session_state.active_tab == "📊 Dashboard":
         st.markdown('<h1 class="main-title">Dashboard</h1>', unsafe_allow_html=True)
         
-        # Course Grid Layout
+        # Course Grid Layout for the 3 original courses
         cols = st.columns(3)
         for i, course in enumerate(st.session_state.courses):
             with cols[i % 3]:
@@ -241,13 +254,11 @@ else:
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                # Small spacer between cards
                 st.write("")
 
     elif st.session_state.active_tab == "📚 Courses":
-        st.markdown('<h1 class="main-title">All Courses</h1>', unsafe_allow_html=True)
-        # List view or search could go here
-        st.table(pd.DataFrame(st.session_state.courses)[['id', 'name', 'term']])
+        st.markdown('<h1 class="main-title">Academic Catalog</h1>', unsafe_allow_html=True)
+        st.table(pd.DataFrame(st.session_state.courses)[['section', 'code', 'name', 'term']])
 
     else:
         st.info(f"Viewing {st.session_state.active_tab} - Content coming soon.")
