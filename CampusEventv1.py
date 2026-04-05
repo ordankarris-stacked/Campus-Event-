@@ -84,6 +84,7 @@ st.markdown("""
         font-weight: bold;
         border: none;
         width: 100%;
+        height: 45px; /* Consistent height for alignment */
     }
     
     .stButton>button:hover {
@@ -92,15 +93,22 @@ st.markdown("""
     }
 
     /* Red button style for quitting */
-    div[data-testid="stVerticalBlock"] > div.quit-btn > div > button {
+    div.quit-btn > div > button {
         background-color: #ff4b4b !important;
         color: white !important;
     }
     
     /* Blue button style for editing */
-    div[data-testid="stVerticalBlock"] > div.edit-btn > div > button {
+    div.edit-btn > div > button {
         background-color: #007bff !important;
         color: white !important;
+    }
+
+    /* Container to help vertical alignment within columns */
+    .button-container {
+        display: flex;
+        align-items: center;
+        height: 100%;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -209,8 +217,9 @@ if choice == "📡 Event Feed":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Grouped Action Buttons
-                c1, c2, spacer = st.columns([1.2, 1.2, 4])
+                # Aligned Action Buttons
+                # Using 4 columns: Join/Quit, Edit, and then spacers
+                c1, c2, c3, c4 = st.columns([1.5, 1.5, 2, 2])
                 
                 with c1:
                     is_bookmarked = ev['id'] in st.session_state.bookmarks
