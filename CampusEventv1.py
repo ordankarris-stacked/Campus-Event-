@@ -132,6 +132,11 @@ st.markdown("""
         color: white;
     }
 
+    /* Account button specific style override */
+    .account-nav-btn button {
+        height: 100px !important;
+    }
+
     /* Hide default Streamlit sidebar radio selector */
     div[data-testid="stSidebarUserContent"] .stRadio {
         display: none;
@@ -240,12 +245,17 @@ else:
     
     # --- NAVIGATION SIDEBAR (Canvas Style) ---
     with st.sidebar:
-        # Account Section
+        # Account Section (Interactive Button)
         badge_class = f"badge-{user_role.lower()}"
+        
+        # We wrap the account info in a button to make it clickable as per user request
+        if st.button(f"👤\nAccount", key="nav_👤 Account", use_container_width=True):
+            st.session_state.active_tab = "👤 Account"
+            st.rerun()
+            
         st.markdown(f"""
-            <div class="nav-item">
-                <div class="nav-icon" style="background: #555; border-radius: 50%; width: 40px; height: 40px; line-height: 40px; margin: 0 auto 5px auto;">👤</div>
-                <div class="nav-text" style="color: #ffffff; font-weight: bold;">{current_user}</div>
+            <div style="text-align: center; margin-top: -15px; margin-bottom: 10px;">
+                <div style="font-size: 10px; color: #aaa;">{current_user}</div>
                 <span class="role-badge {badge_class}">{user_role}</span>
             </div>
         """, unsafe_allow_html=True)
@@ -278,7 +288,30 @@ else:
     if current_user not in st.session_state.bookmarks:
         st.session_state.bookmarks[current_user] = []
 
-    if choice == "📊 Dashboard":
+    if choice == "👤 Account":
+        st.markdown(f'<h1 class="main-title">👤 User Profile</h1>', unsafe_allow_html=True)
+        st.markdown("---")
+        
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.markdown(f"""
+                <div style="background: #1c2128; padding: 40px; border-radius: 50%; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; border: 2px solid #ffd700; margin: auto;">
+                    <span style="font-size: 60px;">👤</span>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.subheader("Account Details")
+            st.write(f"**Username:** {current_user}")
+            st.write(f"**Role:** {user_role}")
+            
+            badge_class = f"badge-{user_role.lower()}"
+            st.markdown(f"**Status:** <span class='role-badge {badge_class}'>Active {user_role}</span>", unsafe_allow_html=True)
+            
+            st.markdown("---")
+            st.info(f"You are currently logged in to the Campus LMS system as a {user_role}. Depending on your role, you have access to specific tools like 'Dashboard' for tasks or 'Assign' for creating curriculum.")
+
+    elif choice == "📊 Dashboard":
         st.markdown(f'<h1 class="main-title">🎓 Student Dashboard</h1>', unsafe_allow_html=True)
         col1, col2 = st.columns([2, 1])
         with col1:
